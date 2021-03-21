@@ -1,4 +1,4 @@
-= Rpg-board-be
+= RPG Board - Backend
 
 image:https://img.shields.io/badge/vert.x-4.0.3-purple.svg[link="https://vertx.io"]
 
@@ -18,6 +18,9 @@ To package your application:
 
 To run your application:
 ```
+# Pre-requisites
+SET PORT=8888
+
 ./mvnw clean compile exec:java
 ```
 
