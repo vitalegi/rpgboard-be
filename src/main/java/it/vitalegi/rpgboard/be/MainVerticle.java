@@ -27,11 +27,12 @@ public class MainVerticle extends AbstractVerticle {
 		vertx.createHttpServer().requestHandler(router)//
 				.listen(Integer.parseInt(System.getenv("PORT")), "0.0.0.0")//
 				.onSuccess(server -> {
-					System.out.println("Start server on port "+server.actualPort());
-				})
-				.onFailure(server -> {
-					System.err.println(server);
-					
+					System.out.println("Start server on port " + server.actualPort());
+					startPromise.complete();
+				}).onFailure(cause -> {
+					System.err.println(cause);
+					startPromise.fail(cause);
+
 				});
 	}
 }
