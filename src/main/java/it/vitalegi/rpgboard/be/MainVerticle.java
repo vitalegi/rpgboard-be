@@ -5,6 +5,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
+import it.vitalegi.rpgboard.be.handler.UserHandler;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -13,7 +14,12 @@ public class MainVerticle extends AbstractVerticle {
 
 		Router router = Router.router(vertx);
 
-		router.route().handler(context -> {
+		UserHandler userHandler = new UserHandler();
+
+		router.post("/api/user").handler(userHandler::add);
+		router.get("/api/user").handler(userHandler::getAll);
+
+		router.get("/api/test").handler(context -> {
 			String address = context.request().connection().remoteAddress().toString();
 			MultiMap queryParams = context.queryParams();
 			String name = queryParams.contains("name") ? queryParams.get("name") : "unknown";
