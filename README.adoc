@@ -20,6 +20,7 @@ To run your application:
 ```
 # Pre-requisites
 SET PORT=8888
+SET JDBC_DATABASE_URL=postgres://postgres:postgres@localhost:5432/rpgboard
 
 ./mvnw clean compile exec:java
 ```

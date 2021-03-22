@@ -1,10 +1,14 @@
 package it.vitalegi.rpgboard.be;
 
-public class User {
+public class Account {
 	String id;
 	String name;
 
-	public User(String id, String name) {
+	public Account() {
+		super();
+	}
+
+	public Account(String id, String name) {
 		super();
 		this.id = id;
 		this.name = name;

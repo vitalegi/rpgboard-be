@@ -1,23 +1,42 @@
 package it.vitalegi.rpgboard.be;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.eventbus.Message;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
-import it.vitalegi.rpgboard.be.handler.UserHandler;
+import io.vertx.ext.web.RoutingContext;
 
 public class MainVerticle extends AbstractVerticle {
+	Logger log = LoggerFactory.getLogger(MainVerticle.class);
 
 	@Override
 	public void start(Promise<Void> startPromise) throws Exception {
+		log.info("start");
+		vertx.deployVerticle(new RpgBoardVerticle());
 
 		Router router = Router.router(vertx);
 
-		UserHandler userHandler = new UserHandler();
+		EventBus eventBus = vertx.eventBus();
 
-		router.post("/api/user").handler(userHandler::add);
-		router.get("/api/user").handler(userHandler::getAll);
+		router.get("/api/account").handler(context -> {
+			JsonObject message = new JsonObject();
+			eventBus.request("rpgboard.getAll", message, reply -> handleResponse(context, reply));
+		});
+
+		router.post("/api/account").handler(context -> {
+			JsonObject message = new JsonObject();
+			message.put("id", context.queryParam("id").get(0));
+			message.put("name", context.queryParam("name").get(0));
+			eventBus.request("rpgboard.add", message, reply -> handleResponse(context, reply));
+		});
 
 		router.get("/api/test").handler(context -> {
 			String address = context.request().connection().remoteAddress().toString();
@@ -40,5 +59,18 @@ public class MainVerticle extends AbstractVerticle {
 					startPromise.fail(cause);
 
 				});
+	}
+
+	private <T> void handleResponse(RoutingContext context, AsyncResult<Message<T>> reply) {
+		if (reply.succeeded()) {
+			HttpServerResponse response = context.response();
+			response.putHeader("content-type", "application/json; charset=utf-8");
+			response.end(reply.result().body().toString());
+		} else {
+			context.response().setStatusCode(500);
+			context.json(new JsonObject().put("error", //
+					reply.cause().getClass().getName()) //
+					.put("description", reply.cause().getMessage()));
+		}
 	}
 }
