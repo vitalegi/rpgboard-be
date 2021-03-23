@@ -21,21 +21,33 @@ public class MainVerticle extends AbstractVerticle {
 	public void start(Promise<Void> startPromise) throws Exception {
 		log.info("start");
 		vertx.deployVerticle(new BoardVerticle());
+		vertx.deployVerticle(new AccountVerticle());
 
 		Router router = Router.router(vertx);
 
 		EventBus eventBus = vertx.eventBus();
 
-		router.get("/api/account").handler(context -> {
+		router.get("/api/board").handler(context -> {
 			JsonObject message = new JsonObject();
 			eventBus.request("board.getAll", message, reply -> handleResponse(context, reply));
 		});
 
-		router.post("/api/account").handler(context -> {
+		router.post("/api/board").handler(context -> {
 			JsonObject message = new JsonObject();
 			message.put("id", context.queryParam("id").get(0));
 			message.put("name", context.queryParam("name").get(0));
 			eventBus.request("board.add", message, reply -> handleResponse(context, reply));
+		});
+
+		router.get("/api/account").handler(context -> {
+			JsonObject message = new JsonObject();
+			eventBus.request("account.getAll", message, reply -> handleResponse(context, reply));
+		});
+		router.post("/api/account").handler(context -> {
+			JsonObject message = new JsonObject();
+			message.put("id", context.queryParam("id").get(0));
+			message.put("name", context.queryParam("name").get(0));
+			eventBus.request("account.add2", message, reply -> handleResponse(context, reply));
 		});
 
 		router.get("/api/test").handler(context -> {
