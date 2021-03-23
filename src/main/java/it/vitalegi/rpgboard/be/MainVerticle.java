@@ -20,7 +20,7 @@ public class MainVerticle extends AbstractVerticle {
 	@Override
 	public void start(Promise<Void> startPromise) throws Exception {
 		log.info("start");
-		vertx.deployVerticle(new RpgBoardVerticle());
+		vertx.deployVerticle(new BoardVerticle());
 
 		Router router = Router.router(vertx);
 
@@ -28,14 +28,14 @@ public class MainVerticle extends AbstractVerticle {
 
 		router.get("/api/account").handler(context -> {
 			JsonObject message = new JsonObject();
-			eventBus.request("rpgboard.getAll", message, reply -> handleResponse(context, reply));
+			eventBus.request("board.getAll", message, reply -> handleResponse(context, reply));
 		});
 
 		router.post("/api/account").handler(context -> {
 			JsonObject message = new JsonObject();
 			message.put("id", context.queryParam("id").get(0));
 			message.put("name", context.queryParam("name").get(0));
-			eventBus.request("rpgboard.add", message, reply -> handleResponse(context, reply));
+			eventBus.request("board.add", message, reply -> handleResponse(context, reply));
 		});
 
 		router.get("/api/test").handler(context -> {
