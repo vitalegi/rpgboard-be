@@ -6,7 +6,11 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.pgclient.PgConnectOptions;
+import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.eventbus.Message;
+import io.vertx.reactivex.pgclient.PgPool;
+import io.vertx.sqlclient.PoolOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,5 +50,15 @@ public class VertxUtil {
                   reply.cause().getClass().getName()) //
               .put("description", reply.cause().getMessage()));
     }
+  }
+
+  public static PgPool pool(Vertx vertx) {
+    PgConnectOptions connectOptions = PgConnectOptions.fromUri(System.getenv("JDBC_DATABASE_URL"));
+
+    // Pool options
+    PoolOptions poolOptions = new PoolOptions().setMaxSize(5);
+
+    // Create the pooled client
+    return PgPool.pool(vertx, connectOptions, poolOptions);
   }
 }
