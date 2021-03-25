@@ -4,26 +4,36 @@ image:https://img.shields.io/badge/vert.x-4.0.3-purple.svg[link="https://vertx.i
 
 This application was generated using http://start.vertx.io
 
+== Dev Workspace
+
+Configure <https://github.com/google/google-java-format>
+
 == Building
 
 To launch your tests:
-```
+
+[source]
+----
+SET PORT=8888
 ./mvnw clean test
-```
+----
 
 To package your application:
-```
+
+[source]
+----
 ./mvnw clean package
-```
+----
 
 To run your application:
-```
-# Pre-requisites
+
+[source]
+----
 SET PORT=8888
 SET JDBC_DATABASE_URL=postgres://postgres:postgres@localhost:5432/rpgboard
 
 ./mvnw clean compile exec:java
-```
+----
 
 == Help
 

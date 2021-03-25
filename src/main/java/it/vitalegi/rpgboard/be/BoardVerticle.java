@@ -1,12 +1,5 @@
 package it.vitalegi.rpgboard.be;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -21,116 +14,157 @@ import io.vertx.sqlclient.PoolOptions;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
+import it.vitalegi.rpgboard.be.data.Account;
 import it.vitalegi.rpgboard.be.repository.AccountRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class BoardVerticle extends AbstractVerticle {
-	Logger log = LoggerFactory.getLogger(BoardVerticle.class);
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
-	@Override
-	public void start(Promise<Void> startPromise) throws Exception {
-		log.info("start");
+public class BoardVerticle{}/* extends AbstractVerticle {
+  Logger log = LoggerFactory.getLogger(BoardVerticle.class);
 
-		EventBus eventBus = vertx.eventBus();
+  @Override
+  public void start(Promise<Void> startPromise) throws Exception {
+    log.info("start");
 
-		eventBus.consumer("board.add").handler(msg -> this.addAccount(msg).onSuccess(v -> {
-			log.info("Insert record done");
-			msg.reply("");
-		}).onFailure(e -> handleException("addAccount 1", msg, e)));
+    EventBus eventBus = vertx.eventBus();
 
-		eventBus.consumer("board.getAll").handler(msg -> getAccounts().onSuccess(accounts -> {
-			log.info("getAccounts ok");
-			msg.reply(Json.encodePrettily(mapAccounts(accounts)));
-		}).onFailure(e -> handleException("getAccounts", msg, e)));
+    eventBus
+        .consumer("board.add")
+        .handler(
+            msg ->
+                this.addAccount(msg)
+                    .onSuccess(
+                        v -> {
+                          log.info("Insert record done");
+                          msg.reply("");
+                        })
+                    .onFailure(e -> handleException("addAccount 1", msg, e)));
 
-		eventBus.consumer("board.sample").handler(this::multipleActions);
-	}
+    eventBus
+        .consumer("board.getAll")
+        .handler(
+            msg ->
+                getAccounts()
+                    .onSuccess(
+                        accounts -> {
+                          log.info("getAccounts ok");
+                          msg.reply(Json.encodePrettily(mapAccounts(accounts)));
+                        })
+                    .onFailure(e -> handleException("getAccounts", msg, e)));
 
-	protected Future<Void> addAccount(Message<?> msg) {
-		AccountRepository accountRepository = new AccountRepository();
+    eventBus.consumer("board.sample").handler(this::multipleActions);
+  }
 
-		JsonObject request = JsonObject.mapFrom(msg.body());
+  protected Future<Void> addAccount(Message<?> msg) {
+    AccountRepository accountRepository = new AccountRepository();
 
-		return pool().getConnection()//
-				.compose(conn -> conn//
-						.preparedQuery(accountRepository.add())//
-						.execute(Tuple.of(request.getString("id"), request.getString("name"))) //
-						.map((Void) null)//
-						.eventually(v -> conn.close())//
-				);
-	}
+    JsonObject request = JsonObject.mapFrom(msg.body());
 
-	protected Future<List<Account>> getAccounts() {
-		AccountRepository accountRepository = new AccountRepository();
+    return pool()
+        .getConnection() //
+        .compose(
+            conn ->
+                conn //
+                    .preparedQuery(accountRepository.add()) //
+                    .execute(Tuple.of(request.getString("id"), request.getString("name"))) //
+                    .map((Void) null) //
+                    .eventually(v -> conn.close()) //
+            );
+  }
 
-		return pool().getConnection()//
-				.compose(conn -> conn//
-						.query(accountRepository.getAll())//
-						.execute()//
-						.map(rows -> {
-							Iterable<Row> iterable = () -> rows.iterator();
-							return StreamSupport.stream(iterable.spliterator(), false) //
-									.map(this::mapAccount) //
-									.collect(Collectors.toList());
-						}) //
-						.eventually(v -> conn.close())//
-				);
-	}
+  protected Future<List<Account>> getAccounts() {
+    AccountRepository accountRepository = new AccountRepository();
 
-	protected void multipleActions(Message<?> msg) {
-		AccountRepository accountRepository = new AccountRepository();
+    return pool()
+        .getConnection() //
+        .compose(
+            conn ->
+                conn //
+                    .query(accountRepository.getAll()) //
+                    .execute() //
+                    .map(
+                        rows -> {
+                          Iterable<Row> iterable = () -> rows.iterator();
+                          return StreamSupport.stream(iterable.spliterator(), false) //
+                              .map(this::mapAccount) //
+                              .collect(Collectors.toList());
+                        }) //
+                    .eventually(v -> conn.close()) //
+            );
+  }
 
-		pool().query(accountRepository.getAll()).execute(ar -> {
-			if (ar.succeeded()) {
-				RowSet<Row> result = ar.result();
-				System.out.println("Got " + result.size() + " rows ");
-			} else {
-				System.out.println("Failure: " + ar.cause().getMessage());
-			}
-		});
+  protected void multipleActions(Message<?> msg) {
+    AccountRepository accountRepository = new AccountRepository();
 
-		pool().getConnection()//
-				.compose(conn -> conn//
-						.preparedQuery(accountRepository.add())//
-						.execute(Tuple.of("A", "B")) //
-						.compose(rowSet -> conn//
-								.query(accountRepository.getAll())//
-								.execute()//
-								.map(rows -> rows.iterator().next().getInteger(0)))
-						.eventually(v -> conn.close())//
-				).onSuccess(count -> {
-					log.info("Query executed successfully");
-					msg.reply(Json.encodePrettily(new Account("aa", "" + count)));
-				}).onFailure(ex -> {
-					log.error("Failed to process query", ex);
-					msg.fail(0, ex.getMessage());
-				});
-	}
+    pool()
+        .query(accountRepository.getAll())
+        .execute(
+            ar -> {
+              if (ar.succeeded()) {
+                RowSet<Row> result = ar.result();
+                System.out.println("Got " + result.size() + " rows ");
+              } else {
+                System.out.println("Failure: " + ar.cause().getMessage());
+              }
+            });
 
-	protected PgPool pool() {
-		PgConnectOptions connectOptions = PgConnectOptions.fromUri(System.getenv("JDBC_DATABASE_URL"));
+    pool()
+        .getConnection() //
+        .compose(
+            conn ->
+                conn //
+                    .preparedQuery(accountRepository.add()) //
+                    .execute(Tuple.of("A", "B")) //
+                    .compose(
+                        rowSet ->
+                            conn //
+                                .query(accountRepository.getAll()) //
+                                .execute() //
+                                .map(rows -> rows.iterator().next().getInteger(0)))
+                    .eventually(v -> conn.close()) //
+            )
+        .onSuccess(
+            count -> {
+              log.info("Query executed successfully");
+              msg.reply(Json.encodePrettily(new Account()));
+            })
+        .onFailure(
+            ex -> {
+              log.error("Failed to process query", ex);
+              msg.fail(0, ex.getMessage());
+            });
+  }
 
-		// Pool options
-		PoolOptions poolOptions = new PoolOptions().setMaxSize(5);
+  protected PgPool pool() {
+    PgConnectOptions connectOptions = PgConnectOptions.fromUri(System.getenv("JDBC_DATABASE_URL"));
 
-		// Create the pooled client
-		return PgPool.pool(vertx, connectOptions, poolOptions);
-	}
+    // Pool options
+    PoolOptions poolOptions = new PoolOptions().setMaxSize(5);
 
-	protected Account mapAccount(Row row) {
-		Account account = new Account();
-		account.setId(row.getString(0));
-		account.setName(row.getString(1));
-		return account;
-	}
+    // Create the pooled client
+    return PgPool.pool(vertx, connectOptions, poolOptions);
+  }
 
-	protected <E> JsonArray mapAccounts(List<E> list) {
-		JsonArray jsonArr = new JsonArray();
-		list.stream().map(JsonObject::mapFrom).forEach(jsonArr::add);
-		return jsonArr;
-	}
+  protected Account mapAccount(Row row) {
+    Account account = new Account();
+    account.setId(row.getString(0));
+    account.setName(row.getString(1));
+    return account;
+  }
 
-	protected void handleException(String description, Message<?> msg, Throwable throwable) {
-		log.error("Operation failed - {}", description, throwable);
-		msg.fail(0, throwable.getMessage());
-	}
+  protected <E> JsonArray mapAccounts(List<E> list) {
+    JsonArray jsonArr = new JsonArray();
+    list.stream().map(JsonObject::mapFrom).forEach(jsonArr::add);
+    return jsonArr;
+  }
+
+  protected void handleException(String description, Message<?> msg, Throwable throwable) {
+    log.error("Operation failed - {}", description, throwable);
+    msg.fail(0, throwable.getMessage());
+  }
 }
+*/
