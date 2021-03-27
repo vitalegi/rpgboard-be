@@ -1,8 +1,8 @@
 package it.vitalegi.rpgboard.be.handler;
 
-import io.vertx.core.eventbus.EventBus;
+import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
+import io.vertx.reactivex.ext.web.RoutingContext;
 
 public class AccountAddHandler extends AbstractHandler {
 

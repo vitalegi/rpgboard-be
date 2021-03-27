@@ -2,11 +2,11 @@ package it.vitalegi.rpgboard.be.handler;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.eventbus.Message;
-import io.vertx.core.http.HttpServerResponse;
+import io.vertx.reactivex.core.eventbus.EventBus;
+import io.vertx.reactivex.core.eventbus.Message;
+import io.vertx.reactivex.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
+import io.vertx.reactivex.ext.web.RoutingContext;
 
 public abstract class AbstractHandler implements Handler<RoutingContext> {
 
