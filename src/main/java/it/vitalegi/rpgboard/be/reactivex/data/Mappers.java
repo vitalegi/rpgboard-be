@@ -1,10 +1,11 @@
 package it.vitalegi.rpgboard.be.reactivex.data;
 
-import io.vertx.reactivex.sqlclient.templates.TupleMapper;
-
 public class Mappers {
 
   public static final it.vitalegi.rpgboard.be.reactivex.data.AccountRowMapper ACCOUNT =
       it.vitalegi.rpgboard.be.reactivex.data.AccountRowMapper.newInstance(
           it.vitalegi.rpgboard.be.data.AccountRowMapper.INSTANCE);
+  public static final it.vitalegi.rpgboard.be.reactivex.data.BoardRowMapper BOARD =
+      it.vitalegi.rpgboard.be.reactivex.data.BoardRowMapper.newInstance(
+          it.vitalegi.rpgboard.be.data.BoardRowMapper.INSTANCE);
 }

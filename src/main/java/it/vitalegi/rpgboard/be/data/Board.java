@@ -11,26 +11,26 @@ import java.util.Map;
 
 @DataObject(generateConverter = true)
 @RowMapped(formatter = SnakeCase.class)
-public class Account {
-  @Column(name = "account_id")
-  String id;
+public class Board {
+  @Column(name = "board_id")
+  String boardId;
 
   @Column(name = "name")
   String name;
 
-  public static Map<String, Object> map(String id, String name) {
+  public static Map<String, Object> map(String boardId, String name) {
     Map<String, Object> map = new HashMap<>();
-    map.put("account_id", id);
+    map.put("board_id", boardId);
     map.put("name", name);
     return map;
   }
 
   public String getId() {
-    return id;
+    return boardId;
   }
 
   public void setId(String id) {
-    this.id = id;
+    this.boardId = id;
   }
 
   public String getName() {
@@ -43,12 +43,12 @@ public class Account {
 
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
-    AccountConverter.toJson(this, json);
+    BoardConverter.toJson(this, json);
     return json;
   }
 
   @Override
   public String toString() {
-    return "Account [id=" + id + ", name=" + name + "]";
+    return "Account [id=" + boardId + ", name=" + name + "]";
   }
 }

@@ -4,7 +4,6 @@ import io.reactivex.Single;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.AbstractVerticle;
-import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.pgclient.PgPool;
@@ -34,6 +33,7 @@ public class AccountVerticle extends AbstractVerticle {
   }
 
   private void getAccount(Message<JsonObject> msg) {
+    log.info("getAccount");
     String id = msg.body().getString("id2");
     accountRepository
         .getAccount(id)
@@ -41,6 +41,7 @@ public class AccountVerticle extends AbstractVerticle {
   }
 
   private void getAccounts(Message<Object> msg) {
+    log.info("getAccounts");
     accountRepository
         .getAccounts()
         .subscribe(accounts -> msg.reply(VertxUtil.jsonMap(accounts)), VertxUtil.handleError(msg));
@@ -69,6 +70,7 @@ public class AccountVerticle extends AbstractVerticle {
   }
 
   private void addAccount(Message<Object> msg) {
+    log.info("addAccount");
     JsonObject obj = (JsonObject) msg.body();
     String id = obj.getString("id");
     String name = obj.getString("name");
