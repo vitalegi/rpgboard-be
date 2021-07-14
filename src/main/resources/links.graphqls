@@ -15,3 +15,7 @@ type Query {
 type Subscription {
   links: Link
 }
+
+type Mutation {
+    addLink(link: String, name: String): Link
+}

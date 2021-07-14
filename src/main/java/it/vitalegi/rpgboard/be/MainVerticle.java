@@ -50,7 +50,7 @@ public class MainVerticle extends AbstractVerticle {
     return vertx
         .createHttpServer()
         .requestHandler(router)
-        .webSocketHandler(configureWebSocket())
+        //.webSocketHandler(configureWebSocket())
         .rxListen(Integer.parseInt(System.getenv("PORT")), "0.0.0.0")
         .ignoreElement();
   }

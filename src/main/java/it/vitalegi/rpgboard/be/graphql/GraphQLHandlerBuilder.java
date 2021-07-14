@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import static graphql.schema.idl.RuntimeWiring.newRuntimeWiring;
 
 public class GraphQLHandlerBuilder {
+  private List<Link> links = links();
 
   public GraphQL createGraphQL(Vertx vertx) {
     String schema = vertx.fileSystem().readFileBlocking("links.graphqls").toString();
@@ -33,6 +34,9 @@ public class GraphQLHandlerBuilder {
                       VertxDataFetcher.create(this::getAllLinks);
                   return builder.dataFetcher("allLinks", getAllLinks);
                 })
+            .type(
+                "Mutation",
+                builder -> builder.dataFetcher("addLink", VertxDataFetcher.create(this::addLink)))
             .build();
 
     SchemaGenerator schemaGenerator = new SchemaGenerator();
@@ -45,13 +49,21 @@ public class GraphQLHandlerBuilder {
   private Future<List<Link>> getAllLinks(DataFetchingEnvironment env) {
     boolean secureOnly = env.getArgument("secureOnly");
     List<Link> result =
-        links().stream()
+        links.stream()
             .filter(link -> !secureOnly || link.getUrl().startsWith("https://"))
             .collect(Collectors.toList());
     return Future.succeededFuture(result);
   }
 
-  private List<Link> links() {
+  private Future<Link> addLink(DataFetchingEnvironment env) {
+    String link = env.getArgument("link");
+    String name = env.getArgument("name");
+    Link entry = new Link(link, "??", user(name));
+    this.links.add(entry);
+    return Future.succeededFuture(entry);
+  }
+
+  private static List<Link> links() {
     List<Link> links = new ArrayList<>();
     links.add(new Link("https://vertx.io", "Vert.x project", user("peter")));
     links.add(new Link("https://www.eclipse.org", "Eclipse Foundation", user("paul")));
@@ -61,7 +73,7 @@ public class GraphQLHandlerBuilder {
     return links;
   }
 
-  private User user(String name) {
+  private static User user(String name) {
     return new User(name);
   }
 }
