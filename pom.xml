@@ -18,7 +18,7 @@
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <exec-maven-plugin.version>3.0.0</exec-maven-plugin.version>
 
-        <vertx.version>4.0.3</vertx.version>
+        <vertx.version>4.1.1</vertx.version>
         <junit-jupiter.version>5.7.0</junit-jupiter.version>
 
         <main.verticle>it.vitalegi.rpgboard.be.MainVerticle</main.verticle>
@@ -71,6 +71,15 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-redis-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web-graphql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.akarnokd</groupId>
+            <artifactId>rxjava3-jdk8-interop</artifactId>
+            <version>3.0.0-RC6</version>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>

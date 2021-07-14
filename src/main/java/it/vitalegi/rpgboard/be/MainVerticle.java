@@ -7,7 +7,10 @@ import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.core.http.ServerWebSocket;
 import io.vertx.reactivex.ext.web.Router;
+import io.vertx.reactivex.ext.web.handler.BodyHandler;
 import io.vertx.reactivex.ext.web.handler.CorsHandler;
+import io.vertx.reactivex.ext.web.handler.graphql.GraphQLHandler;
+import it.vitalegi.rpgboard.be.graphql.GraphQLHandlerBuilder;
 import it.vitalegi.rpgboard.be.handler.AccountAddHandler;
 import it.vitalegi.rpgboard.be.handler.AccountFindAllHandler;
 import it.vitalegi.rpgboard.be.handler.AccountFindByIdHandler;
@@ -28,43 +31,16 @@ public class MainVerticle extends AbstractVerticle {
 
     router
         .route()
+        .handler(BodyHandler.create())
         .handler(
             CorsHandler.create("http://localhost:8080")
                 .allowedMethod(HttpMethod.GET)
                 .allowedMethod(HttpMethod.POST)
                 .allowedMethod(HttpMethod.OPTIONS)
                 .allowedHeader("Content-Type"));
-
-    /*OAuth2Auth oauth2 =
-        OAuth2Auth.create(
-            vertx,
-            new OAuth2Options()
-                .setFlow(OAuth2FlowType.AUTH_CODE)
-                .setClientID("yyyyyyyyyyyyyyyy")
-                .setClientSecret("xxxxxxxxxxxxxx")
-                .setSite("https://facebook.com/login")
-                .setTokenPath("/oauth/access_token")
-                .setAuthorizationPath("/oauth/authorize"));
-
-    // OAuth2Auth oauth2 = OAuth2Auth.create(vertx, opt);
-    OAuth2Auth auth =
-        FacebookAuth.create(vertx, "yyyyyyyyyyy", "xxxxxxxxxx");
-
-    String authorization_uri =
-        auth.authorizeURL(
-            new JsonObject()
-                .put("redirect_uri", "http://localhost:8080/callback")
-                .put("scope", "notifications")
-                .put("state", "aaaaaa"));
-
     router
-        .get("/oauth2/authorization")
-        .handler(
-            ctx -> {
-              log.info("authorization");
-              ctx.response().putHeader("Location", authorization_uri).setStatusCode(302).end();
-            });
-    */
+        .route("/graphql")
+        .handler(GraphQLHandler.create(new GraphQLHandlerBuilder().createGraphQL(vertx)));
 
     EventBus eventBus = vertx.eventBus();
     router.get("/api/account").handler(new AccountFindByIdHandler(eventBus));
