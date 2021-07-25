@@ -7,20 +7,25 @@ import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import io.reactivex.Flowable;
+import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.ext.web.handler.graphql.schema.VertxDataFetcher;
+import io.vertx.reactivex.RxHelper;
 import io.vertx.reactivex.core.Vertx;
+import org.reactivestreams.Publisher;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static graphql.schema.idl.RuntimeWiring.newRuntimeWiring;
 
 public class GraphQLHandlerBuilder {
-  private List<Link> links = links();
+  public static List<Link> LINKS = links();
 
-  public GraphQL createGraphQL(Vertx vertx) {
+  public GraphQL createGraphQL(Vertx vertx, Context context) {
     String schema = vertx.fileSystem().readFileBlocking("links.graphqls").toString();
     SchemaParser schemaParser = new SchemaParser();
     TypeDefinitionRegistry typeDefinitionRegistry = schemaParser.parse(schema);
@@ -49,7 +54,7 @@ public class GraphQLHandlerBuilder {
   private Future<List<Link>> getAllLinks(DataFetchingEnvironment env) {
     boolean secureOnly = env.getArgument("secureOnly");
     List<Link> result =
-        links.stream()
+            LINKS.stream()
             .filter(link -> !secureOnly || link.getUrl().startsWith("https://"))
             .collect(Collectors.toList());
     return Future.succeededFuture(result);
@@ -59,7 +64,7 @@ public class GraphQLHandlerBuilder {
     String link = env.getArgument("link");
     String name = env.getArgument("name");
     Link entry = new Link(link, "??", user(name));
-    this.links.add(entry);
+    LINKS.add(entry);
     return Future.succeededFuture(entry);
   }
 
