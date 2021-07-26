@@ -8,12 +8,13 @@ import io.vertx.sqlclient.templates.annotations.RowMapped;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @DataObject(generateConverter = true)
 @RowMapped(formatter = SnakeCase.class)
 public class Game {
   @Column(name = "game_id")
-  Long id;
+  UUID id;
 
   @Column(name = "name")
   String name;
@@ -25,11 +26,11 @@ public class Game {
     return map;
   }
 
-  public Long getId() {
+  public UUID getId() {
     return id;
   }
 
-  public void setId(Long id) {
+  public void setId(UUID id) {
     this.id = id;
   }
 

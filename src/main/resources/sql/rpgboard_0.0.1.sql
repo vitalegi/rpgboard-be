@@ -4,6 +4,6 @@ CREATE TABLE Account (
 );
 
 CREATE TABLE Game (
-    game_id SERIAL PRIMARY KEY,
+    game_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     name varchar(40) NOT NULL
 );
