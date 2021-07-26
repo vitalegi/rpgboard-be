@@ -31,6 +31,7 @@ public class MainVerticle extends AbstractVerticle {
     log.info("start");
 
     vertx.deployVerticle(new AccountVerticle());
+    vertx.deployVerticle(new GameVerticle());
     Router router = Router.router(vertx);
 
     router
@@ -58,18 +59,18 @@ public class MainVerticle extends AbstractVerticle {
     SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
     sockJSHandler.bridge(
         new SockJSBridgeOptions()
-            .addInboundPermitted(new PermittedOptions().setAddressRegex("websocket.*"))
-            .addOutboundPermitted(new PermittedOptions().setAddressRegex("websocket.*")));
+            .addInboundPermitted(new PermittedOptions().setAddressRegex("external.*"))
+            .addOutboundPermitted(new PermittedOptions().setAddressRegex("external.*")));
 
     router.route("/eventbus/*").handler(sockJSHandler);
     List<String> names = new ArrayList<>();
-    eventBus.consumer("websocket.add-name", event -> {
+    eventBus.consumer("external.add-name", event -> {
       log.info("Received a msg {}", event.toString());
       names.add("");
 
       JsonArray jsonArr = new JsonArray();
       names.forEach(jsonArr::add);
-      eventBus.publish("websocket.names", jsonArr);
+      eventBus.publish("external.names", jsonArr);
     });
 
     return vertx
