@@ -29,6 +29,7 @@ To run your application:
 
 [source]
 ----
+SET ENV=test
 SET PORT=8888
 SET JDBC_DATABASE_URL=postgres://postgres:postgres@localhost:5432/rpgboard
 SET FIREBASE_PRIVATE_KEY={ /* firebase private key, https://console.firebase.google.com/project/rpg-board-30820/settings/serviceaccounts/adminsdk */ }

@@ -1,0 +1,7 @@
+{
+  "security": {
+    "cors": [
+      "http://localhost:8080"
+    ]
+  }
+}

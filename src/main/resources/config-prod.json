@@ -1,0 +1,7 @@
+{
+  "security": {
+    "cors": [
+      "https://rpg-board.netlify.app"
+    ]
+  }
+}

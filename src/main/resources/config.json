@@ -1,0 +1,20 @@
+{
+  "security": {
+    "allowedMethods": [
+      "GET",
+      "POST",
+      "OPTIONS"
+    ],
+    "allowedHeaders": [
+      "Content-Type",
+      "Access-Control-Request-Method",
+      "Access-Control-Allow-Credentials",
+      "Access-Control-Allow-Origin",
+      "Access-Control-Allow-Headers",
+      "x-requested-with",
+      "origin",
+      "accept"
+    ],
+    "allowCredentials": true
+  }
+}
