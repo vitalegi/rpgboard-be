@@ -10,6 +10,7 @@ import io.vertx.reactivex.config.ConfigRetriever;
 import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.ext.web.Router;
+import io.vertx.reactivex.ext.web.handler.BodyHandler;
 import io.vertx.reactivex.ext.web.handler.CorsHandler;
 import it.vitalegi.rpgboard.be.handler.AccountAddHandler;
 import it.vitalegi.rpgboard.be.handler.AccountFindAllHandler;
@@ -58,6 +59,7 @@ public class MainVerticle extends AbstractVerticle {
           log.info("values: {}", config.encodePrettily());
           Router router = Router.router(vertx);
 
+          router.route().handler(BodyHandler.create());
           router.route().handler(ctx -> {
               long start = System.currentTimeMillis();
               String uri = ctx.request().uri();
