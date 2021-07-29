@@ -60,9 +60,12 @@ public class MainVerticle extends AbstractVerticle {
 
           router.route().handler(ctx -> {
               long start = System.currentTimeMillis();
-              log.info("Incoming request {}", ctx.request().uri());
+              String uri = ctx.request().uri();
+              if (uri.indexOf('?')!= -1) {
+                  uri = uri.split("\\?")[0];
+              }
+              log.info("Incoming request {}", uri);
               ctx.next();
-              log.info("Incoming request served {} {}", ctx.request().uri(), System.currentTimeMillis() - start);
           });
           router.route().handler(corsHandler(config));
 

@@ -9,8 +9,11 @@ import io.vertx.reactivex.ext.web.handler.SessionHandler;
 import io.vertx.reactivex.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.reactivex.ext.web.sstore.LocalSessionStore;
 import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthenticationHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WebSocketConfig {
+  static Logger log = LoggerFactory.getLogger(WebSocketConfig.class);
 
   public static void init(Vertx vertx, Router router) {
     SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
@@ -21,7 +24,11 @@ public class WebSocketConfig {
                     new PermittedOptions()
                         .setAddressRegex("external.*")
                         .setRequiredAuthority("REGISTERED_USER"))
-                .addOutboundPermitted(new PermittedOptions().setAddressRegex("external.*")));
+                .addOutboundPermitted(new PermittedOptions().setAddressRegex("external.*")),
+            be -> {
+              log.info("BridgeEvent: {}", be.getRawMessage());
+              be.complete(true);
+            });
 
     router.route().handler(SessionHandler.create(LocalSessionStore.create(vertx)));
     FirebaseJWTAuthenticationHandler authHandler =
