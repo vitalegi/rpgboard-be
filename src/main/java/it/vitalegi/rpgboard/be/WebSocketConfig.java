@@ -23,10 +23,13 @@ public class WebSocketConfig {
                 .addInboundPermitted(
                     new PermittedOptions()
                         .setAddressRegex("external.*")
-                        .setRequiredAuthority("REGISTERED_USER"))
+                        .setRequiredAuthority("REGISTERED_USER")
+                )
                 .addOutboundPermitted(new PermittedOptions().setAddressRegex("external.*")),
             be -> {
-              log.info("BridgeEvent: {}", be.getRawMessage());
+              if (be.getRawMessage() != null) {
+                log.info("BridgeEvent: {}", be.getRawMessage());
+              }
               be.complete(true);
             });
 
