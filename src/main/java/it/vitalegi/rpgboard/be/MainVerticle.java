@@ -56,10 +56,14 @@ public class MainVerticle extends AbstractVerticle {
         config -> {
           log.info("Setup properties done");
           log.info("values: {}", config.encodePrettily());
-          vertx.deployVerticle(new AccountVerticle());
-          vertx.deployVerticle(new GameVerticle());
           Router router = Router.router(vertx);
 
+          router.route().handler(ctx -> {
+              long start = System.currentTimeMillis();
+              log.info("Incoming request {}", ctx.request().uri());
+              ctx.next();
+              log.info("Incoming request served {} {}", ctx.request().uri(), System.currentTimeMillis() - start);
+          });
           router.route().handler(corsHandler(config));
 
           FirebaseJWTAuthenticationHandler.init();
@@ -72,6 +76,9 @@ public class MainVerticle extends AbstractVerticle {
           router.get("/api/accounts").handler(new AccountFindAllHandler(eventBus));
 
           WebSocketConfig.init(vertx, router);
+
+          vertx.deployVerticle(new AccountVerticle());
+          vertx.deployVerticle(new GameVerticle());
 
           Completable out =
               vertx
