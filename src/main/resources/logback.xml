@@ -7,6 +7,9 @@
     </appender>
 
     <logger name="it.vitalegi" level="DEBUG"/>
+    <logger name="io" level="DEBUG"/>
+    <logger name="io.netty" level="INFO"/>
+    <logger name="javax.net" level="DEBUG"/>
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>
