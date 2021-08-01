@@ -11,9 +11,14 @@ import io.vertx.ext.web.handler.sockjs.SockJSBridgeOptions;
 import io.vertx.reactivex.config.ConfigRetriever;
 import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.ext.web.Router;
+import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.handler.BodyHandler;
 import io.vertx.reactivex.ext.web.handler.CorsHandler;
+import io.vertx.reactivex.ext.web.handler.SessionHandler;
 import io.vertx.reactivex.ext.web.handler.sockjs.SockJSHandler;
+import io.vertx.reactivex.ext.web.sstore.LocalSessionStore;
+import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthenticationHandler;
+import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,9 +32,63 @@ public class MainVerticle extends AbstractVerticle {
     log.info("start");
     vertx.exceptionHandler(
         e -> {
-          log.error("Generic exception123 {}:{}", e.getClass().getName(), e.getMessage(), e);
+          log.error("Generic exception {}:{}", e.getClass().getName(), e.getMessage(), e);
         });
     log.info("Setup properties");
+
+    Single<JsonObject> rxConfig = ConfigRetriever.create(vertx, setupConfig()).rxGetConfig();
+    rxConfig.doOnError(
+        error -> {
+          log.error("Failed to load props", error);
+          System.exit(0);
+        });
+    return rxConfig.flatMapCompletable(this::rxStart);
+  }
+
+  public Completable rxStart(JsonObject config) {
+    log.info("Setup properties done");
+    vertx.deployVerticle(new AccountVerticle());
+    vertx.deployVerticle(new GameVerticle());
+    Router router = Router.router(vertx);
+
+    router
+        .route()
+        .handler(corsHandler(config))
+        .handler(BodyHandler.create())
+        .handler(SessionHandler.create(LocalSessionStore.create(vertx)));
+
+    FirebaseJWTAuthProvider authProvider = new FirebaseJWTAuthProvider();
+    FirebaseJWTAuthProvider.init();
+
+    FirebaseJWTAuthenticationHandler authHandler =
+        new FirebaseJWTAuthenticationHandler() {
+
+          protected String getToken(RoutingContext ctx) {
+            return ctx.request().getParam("jwt");
+          }
+        };
+    authHandler.setProvider(authProvider);
+
+    SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
+    Router sockJsRouter = sockJSHandler.bridge(getBridgeOptions());
+    router.route("/eventbus/*").blockingHandler(authHandler);
+    router.mountSubRouter("/eventbus", sockJsRouter);
+    Completable out =
+        vertx
+            .createHttpServer()
+            .requestHandler(router)
+            .rxListen(Integer.parseInt(System.getenv("PORT")), "0.0.0.0")
+            .ignoreElement();
+
+    vertx.setPeriodic(
+        10000,
+        t -> {
+          vertx.eventBus().publish("external.outgoing.games", "hello!");
+        });
+    return out;
+  }
+
+  protected ConfigRetrieverOptions setupConfig() {
     ConfigStoreOptions commonFileStore =
         new ConfigStoreOptions()
             .setType("file")
@@ -44,46 +103,13 @@ public class MainVerticle extends AbstractVerticle {
             .setOptional(false)
             .setConfig(new JsonObject().put("path", "config-" + System.getenv("ENV") + ".json"));
 
-    ConfigRetrieverOptions options =
-        new ConfigRetrieverOptions().addStore(commonFileStore).addStore(fileStore);
-
-    Single<JsonObject> rxConfig = ConfigRetriever.create(vertx, options).rxGetConfig();
-    rxConfig.doOnError(
-        error -> {
-          log.error("Failed to load props", error);
-          System.exit(0);
-        });
-    return rxConfig.flatMapCompletable(
-        config -> {
-          log.info("Setup properties done");
-          vertx.deployVerticle(new AccountVerticle());
-          vertx.deployVerticle(new GameVerticle());
-          Router router = Router.router(vertx);
-
-          setHeaders(router);
-
-          SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
-          Router sockJsRouter = sockJSHandler.bridge(getBridgeOptions());
-          router.mountSubRouter("/eventbus", sockJsRouter);
-
-          setHeaders(router);
-
-          Completable out =
-              vertx
-                  .createHttpServer()
-                  .requestHandler(router)
-                  .rxListen(Integer.parseInt(System.getenv("PORT")), "0.0.0.0")
-                  .ignoreElement();
-
-          vertx.setPeriodic(
-              1000, t -> vertx.eventBus().publish("external.outgoing.games", "hello!"));
-          return out;
-        });
+    return new ConfigRetrieverOptions().addStore(commonFileStore).addStore(fileStore);
   }
 
   protected CorsHandler corsHandler(JsonObject config) {
     JsonObject sec = config.getJsonObject("security");
-    log.info("Apply CORS configuration: {}", sec.toString());
+    log.info("Apply CORS configuration: {}", sec);
+
     CorsHandler corsHandler = CorsHandler.create();
 
     corsHandler.addOrigins(
@@ -106,27 +132,13 @@ public class MainVerticle extends AbstractVerticle {
 
   private SockJSBridgeOptions getBridgeOptions() {
     return new SockJSBridgeOptions()
-        .addOutboundPermitted(new PermittedOptions().setAddressRegex(".*"))
-        .addInboundPermitted(new PermittedOptions().setAddressRegex(".*"));
-  }
-
-  private void setHeaders(Router router) {
-    router
-        .route()
-        .handler(
-            CorsHandler.create(".*.")
-                .allowedMethod(HttpMethod.GET)
-                .allowedMethod(HttpMethod.POST)
-                .allowedMethod(HttpMethod.PATCH)
-                .allowedMethod(HttpMethod.PUT)
-                .allowedMethod(HttpMethod.OPTIONS)
-                .allowCredentials(true)
-                .allowedHeader("Access-Control-Request-Method")
-                .allowedHeader("Access-Control-Allow-Method")
-                .allowedHeader("Access-Control-Allow-Credentials")
-                .allowedHeader("Access-Control-Allow-Origin")
-                .allowedHeader("Access-Control-Allow-Headers")
-                .allowedHeader("Content-Type"));
-    router.route().handler(BodyHandler.create());
+        .addOutboundPermitted(
+            new PermittedOptions()
+                .setAddressRegex("external\\.outgoing.*")
+                .setRequiredAuthority("REGISTERED_USER"))
+        .addInboundPermitted(
+            new PermittedOptions()
+                .setAddressRegex("external\\.incoming.*")
+                .setRequiredAuthority("REGISTERED_USER"));
   }
 }

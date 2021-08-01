@@ -11,10 +11,6 @@ import io.vertx.pgclient.SslMode;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.pgclient.PgPool;
-import io.vertx.reactivex.sqlclient.Query;
-import io.vertx.reactivex.sqlclient.Row;
-import io.vertx.reactivex.sqlclient.RowIterator;
-import io.vertx.reactivex.sqlclient.RowSet;
 import io.vertx.sqlclient.PoolOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,40 +54,14 @@ public class VertxUtil {
   }
 
   public static PgPool pool(Vertx vertx) {
-    try {
-      log.info("Connect with {}", System.getenv("DATABASE_URL"));
-      PgConnectOptions connectOptions = PgConnectOptions.fromUri(System.getenv("DATABASE_URL"));
-      connectOptions.setSslMode(SslMode.REQUIRE);
+    PgConnectOptions connectOptions = PgConnectOptions.fromUri(System.getenv("DATABASE_URL"));
+    connectOptions.setSslMode(SslMode.REQUIRE);
+    connectOptions.setTrustAll(true);
 
-      connectOptions.setTrustAll(true);
-      // Pool options
-      PoolOptions poolOptions = new PoolOptions().setMaxSize(5);
+    // Pool options
+    PoolOptions poolOptions = new PoolOptions().setMaxSize(5);
 
-      // Create the pooled client
-      PgPool pool = PgPool.pool(vertx, connectOptions, poolOptions);
-
-      log.info("getConnection");
-      pool.getConnection();
-      log.info("getConnection done");
-      Query<RowSet<Row>> out = pool.query("SELECT * FROM USER;");
-      log.info("query is ready, execute");
-      out.execute(
-          (ar) -> {
-            log.info("query result");
-            if (ar.succeeded()) {
-              RowIterator<Row> results = ar.result().iterator();
-              while (results.hasNext()) {
-                log.info("> {}", results.next());
-              }
-            } else {
-              log.error("Error", ar.cause());
-              log.error("Trace length {}", ar.cause().getStackTrace().length);
-            }
-          });
-      return pool;
-    } catch (Throwable e) {
-      log.error("Failure", e);
-      throw e;
-    }
+    // Create the pooled client
+    return PgPool.pool(vertx, connectOptions, poolOptions);
   }
 }
