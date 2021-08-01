@@ -15,6 +15,8 @@ import it.vitalegi.rpgboard.be.security.UserContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.UUID;
+
 public class GameVerticle extends AbstractVerticle {
   Logger log = LoggerFactory.getLogger(GameVerticle.class);
 
@@ -65,7 +67,7 @@ public class GameVerticle extends AbstractVerticle {
     log.info("getGame");
     String id = msg.body().getString("id");
     gameRepository
-        .getById(id)
+        .getById(UUID.fromString(id))
         .subscribe(game -> msg.reply(JsonObject.mapFrom(game)), VertxUtil.handleError(msg));
   }
 
