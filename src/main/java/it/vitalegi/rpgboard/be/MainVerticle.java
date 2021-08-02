@@ -15,6 +15,7 @@ import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.core.http.HttpServerResponse;
+import io.vertx.reactivex.ext.web.Route;
 import io.vertx.reactivex.ext.web.Router;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.handler.BodyHandler;
@@ -97,6 +98,16 @@ public class MainVerticle extends AbstractVerticle {
               JsonObject message = new JsonObject().put("gameId", ctx.pathParam("gameId"));
               eventBus.request("game.get", message, reply -> handleResponse(ctx, reply));
             });
+
+    log.info("Deployed routes");
+    for (Route route : router.getRoutes()) {
+      String methods = "";
+      if (route.methods() != null) {
+        methods = route.methods().stream().map(HttpMethod::name).collect(Collectors.joining(", "));
+      }
+      log.info("{} {}", methods, route.getName());
+    }
+
     Completable out =
         vertx
             .createHttpServer()

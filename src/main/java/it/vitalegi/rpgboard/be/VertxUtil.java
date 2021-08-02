@@ -22,11 +22,13 @@ public class VertxUtil {
 
   public static Consumer<? super Throwable> handleError(Message<?> msg) {
     return failure -> {
-      log.error("Generic failure", failure);
-      msg.reply(
+      log.error(failure.getMessage(), failure);
+      msg.fail(
+          500,
           new JsonObject()
               .put("error", failure.getClass().getName())
-              .put("description", failure.getMessage()));
+              .put("description", failure.getMessage())
+              .toString());
     };
   }
 

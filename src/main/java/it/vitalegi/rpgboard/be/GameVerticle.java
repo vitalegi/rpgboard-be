@@ -10,7 +10,6 @@ import io.vertx.reactivex.pgclient.PgPool;
 import it.vitalegi.rpgboard.be.repository.GameRepository;
 import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthProvider;
 import it.vitalegi.rpgboard.be.security.FirebaseJWTDeliveryContext;
-import it.vitalegi.rpgboard.be.security.UserContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,11 +48,12 @@ public class GameVerticle extends AbstractVerticle {
   }
 
   protected void addGame(Message<JsonObject> msg) {
-    log.info("addGame {}", UserContext.getUserId(msg));
-    String name = msg.body().getString("name");
-    String ownerId = msg.body().getString("ownerId");
-    Boolean open = msg.body().getBoolean("open");
+    JsonObject body = msg.body();
+    String name = body.getString("name");
+    String ownerId = body.getString("ownerId");
+    Boolean open = body.getBoolean("open");
     log.info("addGame name={} ownerId={} open={}", name, ownerId, open);
+
     gameRepository
         .add(name, ownerId, open)
         .subscribe(

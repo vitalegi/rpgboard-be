@@ -4,6 +4,7 @@ import io.reactivex.Single;
 import io.vertx.reactivex.pgclient.PgPool;
 import it.vitalegi.rpgboard.be.data.Game;
 import it.vitalegi.rpgboard.be.reactivex.data.Mappers;
+import it.vitalegi.rpgboard.be.util.PreparedStatementBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,43 +14,46 @@ import java.util.UUID;
 
 public class GameRepository {
 
-  private static final String INSERT =
-      "INSERT INTO RPG_Game (name, owner_id, is_open) VALUES (#{name}, #{owner_id}, #{is_open}) RETURNING game_id, name, owner_id, is_open;";
-  private static final String UPDATE_BY_GAME_ID =
-      "UPDATE RPG_Game SET game_id=#{id}, name=#{name}, owner_id=#{owner_id}, is_open=#{is_open} WHERE game_id=#{game_id} RETURNING game_id, name, owner_id, is_open;";
-  private static final String DELETE_BY_GAME_ID =
-      "DELETE FROM RPG_Game WHERE game_id=#{game_id} RETURNING game_id, name, owner_id, is_open;";
+  private static final String GAME_ID = "game_id";
+  private static final PreparedStatementBuilder BUILDER =
+      PreparedStatementBuilder.init()
+          .tableName("RPG_Game")
+          .fields(GAME_ID, "name", "owner_id", "is_open");
+
+  private static final String INSERT = BUILDER.add(Collections.singletonList(GAME_ID));
+  private static final String UPDATE_BY_GAME_ID = BUILDER.updateAllById(GAME_ID);
+  private static final String DELETE_BY_GAME_ID = BUILDER.deleteAllById(GAME_ID);
   private static final String FIND_BY_GAME_ID =
-      "SELECT game_id, name, owner_id, is_open FROM RPG_Game WHERE game_id =#{game_id};";
-  private static final String FIND_ALL = "SELECT game_id, name, owner_id, is_open FROM RPG_Game;";
+      BUILDER.searchEquals(Collections.singletonList(GAME_ID));
+  private static final String FIND_ALL = BUILDER.searchEquals(Collections.emptyList());
 
   Logger log = LoggerFactory.getLogger(this.getClass());
 
-  protected AbstractCrudRepository<Game> crud;
+  protected DatabaseProxy<Game> proxy;
   protected PgPool client;
 
   public GameRepository(PgPool client) {
     this.client = client;
-    crud = new DefaultCrudRepository<Game>(client, Mappers.GAME);
+    proxy = new DefaultCrudRepository<Game>(client, Mappers.GAME);
   }
 
   public Single<Game> add(String name, String ownerId, Boolean open) {
-    return crud.add(INSERT, Game.map(null, name, ownerId, open));
+    return proxy.updateSingle(INSERT, Game.map(null, name, ownerId, open));
   }
 
   public Single<Game> update(UUID gameId, String name, String ownerId, Boolean open) {
-    return crud.update(UPDATE_BY_GAME_ID, Game.map(gameId, name, ownerId, open));
+    return proxy.updateSingle(UPDATE_BY_GAME_ID, Game.map(gameId, name, ownerId, open));
   }
 
   public Single<Game> delete(UUID gameId) {
-    return crud.delete(DELETE_BY_GAME_ID, Game.map(gameId, null, null, null));
+    return proxy.updateSingle(DELETE_BY_GAME_ID, Game.map(gameId, null, null, null));
   }
 
   public Single<Game> getById(UUID gameId) {
-    return crud.getById(FIND_BY_GAME_ID, Collections.singletonMap("game_id", gameId));
+    return proxy.querySingle(FIND_BY_GAME_ID, Collections.singletonMap("game_id", gameId));
   }
 
   public Single<List<Game>> getAll() {
-    return crud.search(FIND_ALL, Collections.emptyMap());
+    return proxy.queryList(FIND_ALL, Collections.emptyMap());
   }
 }

@@ -3,7 +3,7 @@ package it.vitalegi.rpgboard.be.repository;
 import io.vertx.reactivex.pgclient.PgPool;
 import io.vertx.reactivex.sqlclient.templates.RowMapper;
 
-public class DefaultCrudRepository<E> extends AbstractCrudRepository<E> {
+public class DefaultCrudRepository<E> extends DatabaseProxy<E> {
 
   protected RowMapper<E> rowMapper;
 
