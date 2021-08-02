@@ -16,5 +16,8 @@
       "accept"
     ],
     "allowCredentials": true
+  },
+  "database": {
+    "sslMode": "REQUIRED"
   }
 }

@@ -11,18 +11,24 @@ import java.util.Map;
 
 @DataObject(generateConverter = true)
 @RowMapped(formatter = SnakeCase.class)
-public class Account {
-  @Column(name = "account_id")
+public class User {
+  @Column(name = "user_id")
   String id;
 
-  @Column(name = "name")
+  @Column(name = "username")
   String name;
 
   public static Map<String, Object> map(String id, String name) {
     Map<String, Object> map = new HashMap<>();
-    map.put("account_id", id);
-    map.put("name", name);
+    map.put("user_id", id);
+    map.put("username", name);
     return map;
+  }
+
+  public JsonObject toJson() {
+    JsonObject json = new JsonObject();
+    UserConverter.toJson(this, json);
+    return json;
   }
 
   public String getId() {
@@ -41,14 +47,8 @@ public class Account {
     this.name = name;
   }
 
-  public JsonObject toJson() {
-    JsonObject json = new JsonObject();
-    AccountConverter.toJson(this, json);
-    return json;
-  }
-
   @Override
   public String toString() {
-    return "Account [id=" + id + ", name=" + name + "]";
+    return "User{" + "id='" + id + '\'' + ", name='" + name + '\'' + '}';
   }
 }

@@ -2,6 +2,7 @@ package it.vitalegi.rpgboard.be;
 
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
+import io.vertx.pgclient.SslMode;
 import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.core.eventbus.Message;
@@ -9,6 +10,8 @@ import io.vertx.reactivex.pgclient.PgPool;
 import it.vitalegi.rpgboard.be.repository.BoardRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.UUID;
 
 public class BoardVerticle extends AbstractVerticle {
   Logger log = LoggerFactory.getLogger(BoardVerticle.class);
@@ -21,7 +24,9 @@ public class BoardVerticle extends AbstractVerticle {
     log.info("start");
     EventBus eventBus = vertx.eventBus();
 
-    client = VertxUtil.pool(vertx);
+    log.info("Config: {}", config());
+    SslMode sslMode = SslMode.valueOf(config().getJsonObject("database").getString("sslMode"));
+    client = VertxUtil.pool(vertx, sslMode);
     boardRepository = new BoardRepository(client);
     eventBus.consumer("board.get", this::getBoard);
     eventBus.consumer("board.getAll", this::getBoards);
@@ -49,7 +54,7 @@ public class BoardVerticle extends AbstractVerticle {
     String id = obj.getString("id");
     String name = obj.getString("name");
     boardRepository
-        .addBoard(id, name)
+        .addBoard(null, UUID.fromString(id), name, true)
         .subscribe(board -> msg.reply(JsonObject.mapFrom(board)), VertxUtil.handleError(msg));
   }
 }

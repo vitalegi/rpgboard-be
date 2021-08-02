@@ -12,40 +12,40 @@ import java.util.UUID;
 
 @DataObject(generateConverter = true)
 @RowMapped(formatter = SnakeCase.class)
-public class Board {
-  @Column(name = "board_id")
-  UUID boardId;
+public class GamePlayerRole {
+  @Column(name = "entry_id")
+  Long entryId;
 
   @Column(name = "game_id")
   UUID gameId;
 
-  @Column(name = "name")
-  String name;
+  @Column(name = "user_id")
+  String userId;
 
-  @Column(name = "is_active")
-  Boolean active;
+  @Column(name = "role")
+  String role;
 
-  public static Map<String, Object> map(UUID boardId, UUID gameId, String name, Boolean active) {
+  public static Map<String, Object> map(Long entryId, UUID gameId, String userId, String role) {
     Map<String, Object> map = new HashMap<>();
-    map.put("board_id", boardId);
+    map.put("entry_id", entryId);
     map.put("game_id", gameId);
-    map.put("name", name);
-    map.put("is_active", active);
+    map.put("user_id", userId);
+    map.put("role", role);
     return map;
   }
 
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
-    BoardConverter.toJson(this, json);
+    GamePlayerRoleConverter.toJson(this, json);
     return json;
   }
 
-  public UUID getBoardId() {
-    return boardId;
+  public Long getEntryId() {
+    return entryId;
   }
 
-  public void setBoardId(UUID boardId) {
-    this.boardId = boardId;
+  public void setEntryId(Long entryId) {
+    this.entryId = entryId;
   }
 
   public UUID getGameId() {
@@ -56,34 +56,35 @@ public class Board {
     this.gameId = gameId;
   }
 
-  public String getName() {
-    return name;
+  public String getUserId() {
+    return userId;
   }
 
-  public void setName(String name) {
-    this.name = name;
+  public void setUserId(String userId) {
+    this.userId = userId;
   }
 
-  public Boolean getActive() {
-    return active;
+  public String getRole() {
+    return role;
   }
 
-  public void setActive(Boolean active) {
-    this.active = active;
+  public void setRole(String role) {
+    this.role = role;
   }
 
   @Override
   public String toString() {
-    return "Board{"
-        + "boardId="
-        + boardId
+    return "GamePlayerRole{"
+        + "entryId="
+        + entryId
         + ", gameId="
         + gameId
-        + ", name='"
-        + name
+        + ", userId='"
+        + userId
         + '\''
-        + ", active="
-        + active
+        + ", role='"
+        + role
+        + '\''
         + '}';
   }
 }

@@ -53,9 +53,9 @@ public class VertxUtil {
     }
   }
 
-  public static PgPool pool(Vertx vertx) {
+  public static PgPool pool(Vertx vertx, SslMode sslMode) {
     PgConnectOptions connectOptions = PgConnectOptions.fromUri(System.getenv("DATABASE_URL"));
-    connectOptions.setSslMode(SslMode.REQUIRE);
+    connectOptions.setSslMode(sslMode);
     connectOptions.setTrustAll(true);
 
     // Pool options

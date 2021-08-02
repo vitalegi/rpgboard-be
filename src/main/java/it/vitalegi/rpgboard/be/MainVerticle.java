@@ -4,12 +4,17 @@ import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.DeploymentOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSBridgeOptions;
 import io.vertx.reactivex.config.ConfigRetriever;
 import io.vertx.reactivex.core.AbstractVerticle;
+import io.vertx.reactivex.core.eventbus.EventBus;
+import io.vertx.reactivex.core.eventbus.Message;
+import io.vertx.reactivex.core.http.HttpServerResponse;
 import io.vertx.reactivex.ext.web.Router;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.handler.BodyHandler;
@@ -17,8 +22,8 @@ import io.vertx.reactivex.ext.web.handler.CorsHandler;
 import io.vertx.reactivex.ext.web.handler.SessionHandler;
 import io.vertx.reactivex.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.reactivex.ext.web.sstore.LocalSessionStore;
-import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthenticationHandler;
 import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthProvider;
+import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthenticationHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,10 +52,8 @@ public class MainVerticle extends AbstractVerticle {
 
   public Completable rxStart(JsonObject config) {
     log.info("Setup properties done");
-    vertx.deployVerticle(new AccountVerticle());
-    vertx.deployVerticle(new GameVerticle());
+    vertx.deployVerticle(new GameVerticle(), new DeploymentOptions().setConfig(config));
     Router router = Router.router(vertx);
-
     router
         .route()
         .handler(corsHandler(config))
@@ -73,6 +76,27 @@ public class MainVerticle extends AbstractVerticle {
     Router sockJsRouter = sockJSHandler.bridge(getBridgeOptions());
     router.route("/eventbus/*").blockingHandler(authHandler);
     router.mountSubRouter("/eventbus", sockJsRouter);
+
+    EventBus eventBus = vertx.eventBus();
+    router
+        .post("/api/game")
+        .handler(
+            ctx -> {
+              JsonObject message = new JsonObject();
+              JsonObject body = ctx.getBodyAsJson();
+              message.put("name", body.getString("name"));
+              message.put("ownerId", body.getString("ownerId"));
+              message.put("open", body.getBoolean("open"));
+              eventBus.request("game.add", message, reply -> handleResponse(ctx, reply));
+            });
+
+    router
+        .get("/api/game/:gameId")
+        .handler(
+            ctx -> {
+              JsonObject message = new JsonObject().put("gameId", ctx.pathParam("gameId"));
+              eventBus.request("game.get", message, reply -> handleResponse(ctx, reply));
+            });
     Completable out =
         vertx
             .createHttpServer()
@@ -140,5 +164,20 @@ public class MainVerticle extends AbstractVerticle {
             new PermittedOptions()
                 .setAddressRegex("external\\.incoming.*")
                 .setRequiredAuthority("REGISTERED_USER"));
+  }
+
+  private <T> void handleResponse(RoutingContext context, AsyncResult<Message<T>> reply) {
+    if (reply.succeeded()) {
+      HttpServerResponse response = context.response();
+      response.putHeader("content-type", "application/json; charset=utf-8");
+      response.end(reply.result().body().toString());
+    } else {
+      context.response().setStatusCode(500);
+      JsonObject payload =
+          new JsonObject()
+              .put("error", reply.cause().getClass().getName())
+              .put("description", reply.cause().getMessage());
+      context.json(payload);
+    }
   }
 }

@@ -3,5 +3,8 @@
     "cors": [
       "https://rpg-board.netlify.app", "http://localhost:8080"
     ]
+  },
+  "database": {
+    "sslMode": "REQUIRED"
   }
 }

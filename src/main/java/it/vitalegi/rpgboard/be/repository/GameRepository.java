@@ -2,8 +2,6 @@ package it.vitalegi.rpgboard.be.repository;
 
 import io.reactivex.Single;
 import io.vertx.reactivex.pgclient.PgPool;
-import io.vertx.reactivex.sqlclient.templates.RowMapper;
-import it.vitalegi.rpgboard.be.data.Board;
 import it.vitalegi.rpgboard.be.data.Game;
 import it.vitalegi.rpgboard.be.reactivex.data.Mappers;
 import org.slf4j.Logger;
@@ -16,39 +14,39 @@ import java.util.UUID;
 public class GameRepository {
 
   private static final String INSERT =
-      "INSERT INTO Game (name) VALUES (#{name}) RETURNING game_id, name;";
-  private static final String UPDATE =
-      "UPDATE Game SET game_id=#{id}, name=${name} WHERE game_id=#{game_id} RETURNING game_id, name;";
+      "INSERT INTO RPG_Game (name, owner_id, is_open) VALUES (#{name}, #{owner_id}, #{is_open}) RETURNING game_id, name, owner_id, is_open;";
+  private static final String UPDATE_BY_GAME_ID =
+      "UPDATE RPG_Game SET game_id=#{id}, name=#{name}, owner_id=#{owner_id}, is_open=#{is_open} WHERE game_id=#{game_id} RETURNING game_id, name, owner_id, is_open;";
+  private static final String DELETE_BY_GAME_ID =
+      "DELETE FROM RPG_Game WHERE game_id=#{game_id} RETURNING game_id, name, owner_id, is_open;";
   private static final String FIND_BY_GAME_ID =
-      "SELECT game_id, name FROM Game WHERE game_id =#{game_id};";
-  private static final String FIND_ALL = "SELECT game_id, name FROM Game;";
+      "SELECT game_id, name, owner_id, is_open FROM RPG_Game WHERE game_id =#{game_id};";
+  private static final String FIND_ALL = "SELECT game_id, name, owner_id, is_open FROM RPG_Game;";
 
-  Logger log = LoggerFactory.getLogger(GameRepository.class);
+  Logger log = LoggerFactory.getLogger(this.getClass());
 
-  protected AbstractCrudRepository<Game, UUID> crud;
+  protected AbstractCrudRepository<Game> crud;
   protected PgPool client;
 
   public GameRepository(PgPool client) {
     this.client = client;
-    crud =
-        new AbstractCrudRepository<Game, UUID>(client) {
-          @Override
-          protected RowMapper<Game> rowMapper() {
-            return Mappers.GAME;
-          }
-        };
+    crud = new DefaultCrudRepository<Game>(client, Mappers.GAME);
   }
 
-  public Single<Game> add(String name) {
-    return crud.add(INSERT, Board.map(null, name));
+  public Single<Game> add(String name, String ownerId, Boolean open) {
+    return crud.add(INSERT, Game.map(null, name, ownerId, open));
   }
 
-  public Single<Game> update(Long gameId, String name) {
-    return crud.update(UPDATE, Game.map(gameId, name));
+  public Single<Game> update(UUID gameId, String name, String ownerId, Boolean open) {
+    return crud.update(UPDATE_BY_GAME_ID, Game.map(gameId, name, ownerId, open));
+  }
+
+  public Single<Game> delete(UUID gameId) {
+    return crud.delete(DELETE_BY_GAME_ID, Game.map(gameId, null, null, null));
   }
 
   public Single<Game> getById(UUID gameId) {
-    return crud.getById(FIND_BY_GAME_ID, gameId);
+    return crud.getById(FIND_BY_GAME_ID, Collections.singletonMap("game_id", gameId));
   }
 
   public Single<List<Game>> getAll() {

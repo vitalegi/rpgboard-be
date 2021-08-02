@@ -12,7 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public abstract class AbstractCrudRepository<E, P> {
+public abstract class AbstractCrudRepository<E> {
 
   Logger log = LoggerFactory.getLogger(AbstractCrudRepository.class);
   protected PgPool client;
@@ -31,6 +31,14 @@ public abstract class AbstractCrudRepository<E, P> {
         .singleOrError();
   }
 
+  protected Single<E> delete(String query, Map<String, Object> entry) {
+    return SqlTemplate.forQuery(client, query)
+        .mapTo(rowMapper())
+        .rxExecute(entry)
+        .flatMapObservable(Observable::fromIterable)
+        .singleOrError();
+  }
+
   protected Single<E> update(String query, Map<String, Object> entry) {
     return SqlTemplate.forQuery(client, query)
         .mapTo(rowMapper())
@@ -39,10 +47,10 @@ public abstract class AbstractCrudRepository<E, P> {
         .singleOrError();
   }
 
-  protected Single<E> getById(String query, P entryId) {
+  protected Single<E> getById(String query, Map<String, Object> entry) {
     return SqlTemplate.forQuery(client, query)
         .mapTo(rowMapper())
-        .rxExecute(Collections.singletonMap("id", entryId))
+        .rxExecute(entry)
         .flatMapObservable(Observable::fromIterable)
         .singleOrError();
   }

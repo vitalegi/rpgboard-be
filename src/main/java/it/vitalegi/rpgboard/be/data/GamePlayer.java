@@ -12,40 +12,28 @@ import java.util.UUID;
 
 @DataObject(generateConverter = true)
 @RowMapped(formatter = SnakeCase.class)
-public class Board {
-  @Column(name = "board_id")
-  UUID boardId;
-
+public class GamePlayer {
   @Column(name = "game_id")
   UUID gameId;
 
-  @Column(name = "name")
-  String name;
+  @Column(name = "user_id")
+  String userId;
 
-  @Column(name = "is_active")
-  Boolean active;
+  @Column(name = "username")
+  String username;
 
-  public static Map<String, Object> map(UUID boardId, UUID gameId, String name, Boolean active) {
+  public static Map<String, Object> map(UUID gameId, String userId, String username) {
     Map<String, Object> map = new HashMap<>();
-    map.put("board_id", boardId);
     map.put("game_id", gameId);
-    map.put("name", name);
-    map.put("is_active", active);
+    map.put("user_id", userId);
+    map.put("username", username);
     return map;
   }
 
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
-    BoardConverter.toJson(this, json);
+    GamePlayerConverter.toJson(this, json);
     return json;
-  }
-
-  public UUID getBoardId() {
-    return boardId;
-  }
-
-  public void setBoardId(UUID boardId) {
-    this.boardId = boardId;
   }
 
   public UUID getGameId() {
@@ -56,34 +44,33 @@ public class Board {
     this.gameId = gameId;
   }
 
-  public String getName() {
-    return name;
+  public String getUserId() {
+    return userId;
   }
 
-  public void setName(String name) {
-    this.name = name;
+  public void setUserId(String userId) {
+    this.userId = userId;
   }
 
-  public Boolean getActive() {
-    return active;
+  public String getUsername() {
+    return username;
   }
 
-  public void setActive(Boolean active) {
-    this.active = active;
+  public void setUsername(String username) {
+    this.username = username;
   }
 
   @Override
   public String toString() {
-    return "Board{"
-        + "boardId="
-        + boardId
-        + ", gameId="
+    return "GamePlayer{"
+        + "gameId="
         + gameId
-        + ", name='"
-        + name
+        + ", userId='"
+        + userId
         + '\''
-        + ", active="
-        + active
+        + ", username='"
+        + username
+        + '\''
         + '}';
   }
 }

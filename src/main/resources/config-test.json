@@ -3,5 +3,8 @@
     "cors": [
       "http://localhost:8080"
     ]
+  },
+  "database": {
+    "sslMode": "ALLOW"
   }
 }

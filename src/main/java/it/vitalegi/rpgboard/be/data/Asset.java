@@ -12,9 +12,10 @@ import java.util.UUID;
 
 @DataObject(generateConverter = true)
 @RowMapped(formatter = SnakeCase.class)
-public class Board {
-  @Column(name = "board_id")
-  UUID boardId;
+public class Asset {
+
+  @Column(name = "asset_id")
+  UUID assetId;
 
   @Column(name = "game_id")
   UUID gameId;
@@ -22,30 +23,35 @@ public class Board {
   @Column(name = "name")
   String name;
 
-  @Column(name = "is_active")
-  Boolean active;
+  @Column(name = "size")
+  Long size;
 
-  public static Map<String, Object> map(UUID boardId, UUID gameId, String name, Boolean active) {
+  @Column(name = "content")
+  String content;
+
+  public static Map<String, Object> map(
+      UUID assetId, UUID gameId, String name, Long size, String content) {
     Map<String, Object> map = new HashMap<>();
-    map.put("board_id", boardId);
+    map.put("asset_id", assetId);
     map.put("game_id", gameId);
     map.put("name", name);
-    map.put("is_active", active);
+    map.put("size", size);
+    map.put("content", content);
     return map;
   }
 
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
-    BoardConverter.toJson(this, json);
+    AssetConverter.toJson(this, json);
     return json;
   }
 
-  public UUID getBoardId() {
-    return boardId;
+  public UUID getAssetId() {
+    return assetId;
   }
 
-  public void setBoardId(UUID boardId) {
-    this.boardId = boardId;
+  public void setAssetId(UUID assetId) {
+    this.assetId = assetId;
   }
 
   public UUID getGameId() {
@@ -64,26 +70,37 @@ public class Board {
     this.name = name;
   }
 
-  public Boolean getActive() {
-    return active;
+  public Long getSize() {
+    return size;
   }
 
-  public void setActive(Boolean active) {
-    this.active = active;
+  public void setSize(Long size) {
+    this.size = size;
+  }
+
+  public String getContent() {
+    return content;
+  }
+
+  public void setContent(String content) {
+    this.content = content;
   }
 
   @Override
   public String toString() {
-    return "Board{"
-        + "boardId="
-        + boardId
+    return "Asset{"
+        + "assetId="
+        + assetId
         + ", gameId="
         + gameId
         + ", name='"
         + name
         + '\''
-        + ", active="
-        + active
+        + ", size="
+        + size
+        + ", content='"
+        + content
+        + '\''
         + '}';
   }
 }

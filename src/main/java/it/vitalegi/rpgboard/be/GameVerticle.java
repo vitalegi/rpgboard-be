@@ -1,12 +1,11 @@
 package it.vitalegi.rpgboard.be;
 
-import io.reactivex.Maybe;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
+import io.vertx.pgclient.SslMode;
 import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.core.eventbus.Message;
-import io.vertx.reactivex.ext.auth.User;
 import io.vertx.reactivex.pgclient.PgPool;
 import it.vitalegi.rpgboard.be.repository.GameRepository;
 import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthProvider;
@@ -33,28 +32,30 @@ public class GameVerticle extends AbstractVerticle {
         e -> {
           log.error("Generic exception456 {}:{}", e.getClass().getName(), e.getMessage(), e);
         });
-    client = VertxUtil.pool(vertx);
+    SslMode sslMode = SslMode.valueOf(config().getJsonObject("database").getString("sslMode"));
+    client = VertxUtil.pool(vertx, sslMode);
     gameRepository = new GameRepository(client);
     eventBus.addInboundInterceptor(new FirebaseJWTDeliveryContext(vertx, authProvider));
 
     eventBus.consumer("external.incoming.game.add", this::addGame);
     eventBus.consumer("external.incoming.game.getAll", this::getGames);
     eventBus.consumer("external.incoming.game.getById", this::getGame);
-  }
 
-  protected Maybe<User> getUser(String token) {
-    return vertx.rxExecuteBlocking(
-        future -> {
-          authProvider.getUser(token);
-        });
+    eventBus.consumer("game.add", this::addGame);
+    eventBus.consumer("game.get", this::getGame);
+    eventBus.consumer("game.getAll", this::getGames);
+    eventBus.consumer("game.update", this::updateGame);
+    eventBus.consumer("game.delete", this::deleteGame);
   }
 
   protected void addGame(Message<JsonObject> msg) {
     log.info("addGame {}", UserContext.getUserId(msg));
     String name = msg.body().getString("name");
-
+    String ownerId = msg.body().getString("ownerId");
+    Boolean open = msg.body().getBoolean("open");
+    log.info("addGame name={} ownerId={} open={}", name, ownerId, open);
     gameRepository
-        .add(name)
+        .add(name, ownerId, open)
         .subscribe(
             game -> {
               msg.reply(JsonObject.mapFrom(game));
@@ -64,10 +65,31 @@ public class GameVerticle extends AbstractVerticle {
   }
 
   protected void getGame(Message<JsonObject> msg) {
-    log.info("getGame");
-    String id = msg.body().getString("id");
+    UUID gameId = UUID.fromString(msg.body().getString("gameId"));
+    log.info("getGame {}", gameId);
     gameRepository
-        .getById(UUID.fromString(id))
+        .getById(gameId)
+        .subscribe(game -> msg.reply(JsonObject.mapFrom(game)), VertxUtil.handleError(msg));
+  }
+
+  protected void updateGame(Message<JsonObject> msg) {
+    log.info("updateGame");
+    UUID gameId = UUID.fromString(msg.body().getString("gameId"));
+    String name = msg.body().getString("name");
+    String ownerId = msg.body().getString("ownerId");
+    Boolean open = msg.body().getBoolean("open");
+
+    gameRepository
+        .update(gameId, name, ownerId, open)
+        .subscribe(game -> msg.reply(JsonObject.mapFrom(game)), VertxUtil.handleError(msg));
+  }
+
+  protected void deleteGame(Message<JsonObject> msg) {
+    log.info("deleteGame");
+    UUID gameId = UUID.fromString(msg.body().getString("gameId"));
+
+    gameRepository
+        .delete(gameId)
         .subscribe(game -> msg.reply(JsonObject.mapFrom(game)), VertxUtil.handleError(msg));
   }
 

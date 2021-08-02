@@ -19,10 +19,18 @@ public class Game {
   @Column(name = "name")
   String name;
 
-  public static Map<String, Object> map(Long id, String name) {
+  @Column(name = "owner_id")
+  String ownerId;
+
+  @Column(name = "is_open")
+  Boolean open;
+
+  public static Map<String, Object> map(UUID id, String name, String ownerId, Boolean open) {
     Map<String, Object> map = new HashMap<>();
     map.put("game_id", id);
     map.put("name", name);
+    map.put("owner_id", ownerId);
+    map.put("is_open", open);
     return map;
   }
 
@@ -42,6 +50,22 @@ public class Game {
     this.name = name;
   }
 
+  public String getOwnerId() {
+    return ownerId;
+  }
+
+  public void setOwnerId(String ownerId) {
+    this.ownerId = ownerId;
+  }
+
+  public Boolean getOpen() {
+    return open;
+  }
+
+  public void setOpen(Boolean open) {
+    this.open = open;
+  }
+
   public JsonObject toJson() {
     JsonObject json = new JsonObject();
     GameConverter.toJson(this, json);
@@ -50,6 +74,16 @@ public class Game {
 
   @Override
   public String toString() {
-    return "Game [id=" + id + ", name=" + name + "]";
+    return "Game{"
+        + "id="
+        + id
+        + ", name='"
+        + name
+        + '\''
+        + ", ownerId="
+        + ownerId
+        + ", open="
+        + open
+        + '}';
   }
 }
