@@ -46,7 +46,7 @@ public class MainVerticle extends AbstractVerticle {
     rxConfig.doOnError(
         error -> {
           log.error("Failed to load props", error);
-          System.exit(0);
+          throw new RuntimeException(error);
         });
     return rxConfig.flatMapCompletable(this::rxStart);
   }

@@ -5,6 +5,7 @@ import io.vertx.codegen.format.SnakeCase;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.annotations.Column;
 import io.vertx.sqlclient.templates.annotations.RowMapped;
+import it.vitalegi.rpgboard.be.util.PreparedStatementBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,24 +14,33 @@ import java.util.UUID;
 @DataObject(generateConverter = true)
 @RowMapped(formatter = SnakeCase.class)
 public class Board {
-  @Column(name = "board_id")
+  public static final String BOARD_ID = "board_id";
+  public static final String GAME_ID = "game_id";
+  public static final String NAME = "name";
+  public static final String IS_ACTIVE = "is_active";
+  public static final PreparedStatementBuilder BUILDER =
+      PreparedStatementBuilder.init()
+          .tableName("RPG_Board")
+          .fields(BOARD_ID, GAME_ID, NAME, IS_ACTIVE);
+
+  @Column(name = BOARD_ID)
   UUID boardId;
 
-  @Column(name = "game_id")
+  @Column(name = GAME_ID)
   UUID gameId;
 
-  @Column(name = "name")
+  @Column(name = NAME)
   String name;
 
-  @Column(name = "is_active")
+  @Column(name = IS_ACTIVE)
   Boolean active;
 
   public static Map<String, Object> map(UUID boardId, UUID gameId, String name, Boolean active) {
     Map<String, Object> map = new HashMap<>();
-    map.put("board_id", boardId);
-    map.put("game_id", gameId);
-    map.put("name", name);
-    map.put("is_active", active);
+    map.put(BOARD_ID, boardId);
+    map.put(GAME_ID, gameId);
+    map.put(NAME, name);
+    map.put(IS_ACTIVE, active);
     return map;
   }
 

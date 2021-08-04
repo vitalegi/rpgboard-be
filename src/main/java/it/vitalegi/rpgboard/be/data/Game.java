@@ -5,6 +5,7 @@ import io.vertx.codegen.format.SnakeCase;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.annotations.Column;
 import io.vertx.sqlclient.templates.annotations.RowMapped;
+import it.vitalegi.rpgboard.be.util.PreparedStatementBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,24 +14,34 @@ import java.util.UUID;
 @DataObject(generateConverter = true)
 @RowMapped(formatter = SnakeCase.class)
 public class Game {
-  @Column(name = "game_id")
+
+  public static final String GAME_ID = "game_id";
+  public static final String NAME = "name";
+  public static final String OWNER_ID = "owner_id";
+  public static final String IS_OPEN = "is_open";
+  public static final PreparedStatementBuilder BUILDER =
+      PreparedStatementBuilder.init()
+          .tableName("RPG_Game")
+          .fields(GAME_ID, NAME, OWNER_ID, IS_OPEN);
+
+  @Column(name = GAME_ID)
   UUID id;
 
-  @Column(name = "name")
+  @Column(name = NAME)
   String name;
 
-  @Column(name = "owner_id")
+  @Column(name = OWNER_ID)
   String ownerId;
 
-  @Column(name = "is_open")
+  @Column(name = IS_OPEN)
   Boolean open;
 
   public static Map<String, Object> map(UUID id, String name, String ownerId, Boolean open) {
     Map<String, Object> map = new HashMap<>();
-    map.put("game_id", id);
-    map.put("name", name);
-    map.put("owner_id", ownerId);
-    map.put("is_open", open);
+    map.put(GAME_ID, id);
+    map.put(NAME, name);
+    map.put(OWNER_ID, ownerId);
+    map.put(IS_OPEN, open);
     return map;
   }
 

@@ -5,6 +5,7 @@ import io.vertx.codegen.format.SnakeCase;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.annotations.Column;
 import io.vertx.sqlclient.templates.annotations.RowMapped;
+import it.vitalegi.rpgboard.be.util.PreparedStatementBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,13 +14,21 @@ import java.util.UUID;
 @DataObject(generateConverter = true)
 @RowMapped(formatter = SnakeCase.class)
 public class GamePlayer {
-  @Column(name = "game_id")
+  public static final String GAME_ID = "game_id";
+  public static final String USER_ID = "user_id";
+  public static final String USERNAME = "username";
+  public static final PreparedStatementBuilder BUILDER =
+      PreparedStatementBuilder.init()
+          .tableName("RPG_GamePlayer")
+          .fields(GAME_ID, USER_ID, USERNAME);
+
+  @Column(name = GAME_ID)
   UUID gameId;
 
-  @Column(name = "user_id")
+  @Column(name = USER_ID)
   String userId;
 
-  @Column(name = "username")
+  @Column(name = USERNAME)
   String username;
 
   public static Map<String, Object> map(UUID gameId, String userId, String username) {

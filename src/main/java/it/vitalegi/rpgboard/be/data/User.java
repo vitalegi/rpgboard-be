@@ -5,6 +5,7 @@ import io.vertx.codegen.format.SnakeCase;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.annotations.Column;
 import io.vertx.sqlclient.templates.annotations.RowMapped;
+import it.vitalegi.rpgboard.be.util.PreparedStatementBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,16 +13,21 @@ import java.util.Map;
 @DataObject(generateConverter = true)
 @RowMapped(formatter = SnakeCase.class)
 public class User {
-  @Column(name = "user_id")
+  public static final String USER_ID = "user_id";
+  public static final String USERNAME = "username";
+  public static final PreparedStatementBuilder BUILDER =
+      PreparedStatementBuilder.init().tableName("RPG_User").fields(USER_ID, USERNAME);
+
+  @Column(name = USER_ID)
   String id;
 
-  @Column(name = "username")
+  @Column(name = USERNAME)
   String name;
 
   public static Map<String, Object> map(String id, String name) {
     Map<String, Object> map = new HashMap<>();
-    map.put("user_id", id);
-    map.put("username", name);
+    map.put(USER_ID, id);
+    map.put(USERNAME, name);
     return map;
   }
 

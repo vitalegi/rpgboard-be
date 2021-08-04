@@ -5,6 +5,7 @@ import io.vertx.codegen.format.SnakeCase;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.annotations.Column;
 import io.vertx.sqlclient.templates.annotations.RowMapped;
+import it.vitalegi.rpgboard.be.util.PreparedStatementBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,30 +14,39 @@ import java.util.UUID;
 @DataObject(generateConverter = true)
 @RowMapped(formatter = SnakeCase.class)
 public class Asset {
+  public static final String ASSET_ID = "asset_id";
+  public static final String GAME_ID = "game_id";
+  public static final String NAME = "name";
+  public static final String SIZE = "size";
+  public static final String CONTENT = "content";
+  public static final PreparedStatementBuilder BUILDER =
+      PreparedStatementBuilder.init()
+          .tableName("RPG_Asset")
+          .fields(ASSET_ID, GAME_ID, NAME, SIZE, CONTENT);
 
-  @Column(name = "asset_id")
+  @Column(name = ASSET_ID)
   UUID assetId;
 
-  @Column(name = "game_id")
+  @Column(name = GAME_ID)
   UUID gameId;
 
-  @Column(name = "name")
+  @Column(name = NAME)
   String name;
 
-  @Column(name = "size")
+  @Column(name = SIZE)
   Long size;
 
-  @Column(name = "content")
+  @Column(name = CONTENT)
   String content;
 
   public static Map<String, Object> map(
       UUID assetId, UUID gameId, String name, Long size, String content) {
     Map<String, Object> map = new HashMap<>();
-    map.put("asset_id", assetId);
-    map.put("game_id", gameId);
-    map.put("name", name);
-    map.put("size", size);
-    map.put("content", content);
+    map.put(ASSET_ID, assetId);
+    map.put(GAME_ID, gameId);
+    map.put(NAME, name);
+    map.put(SIZE, size);
+    map.put(CONTENT, content);
     return map;
   }
 

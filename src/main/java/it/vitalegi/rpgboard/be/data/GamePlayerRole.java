@@ -5,6 +5,7 @@ import io.vertx.codegen.format.SnakeCase;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.annotations.Column;
 import io.vertx.sqlclient.templates.annotations.RowMapped;
+import it.vitalegi.rpgboard.be.util.PreparedStatementBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,24 +14,33 @@ import java.util.UUID;
 @DataObject(generateConverter = true)
 @RowMapped(formatter = SnakeCase.class)
 public class GamePlayerRole {
-  @Column(name = "entry_id")
+  public static final String ENTRY_ID = "entry_id";
+  public static final String GAME_ID = "game_id";
+  public static final String USER_ID = "user_id";
+  public static final String ROLE = "role";
+  public static final PreparedStatementBuilder BUILDER =
+      PreparedStatementBuilder.init()
+          .tableName("RPG_GamePlayerRole")
+          .fields(ENTRY_ID, GAME_ID, USER_ID, ROLE);
+
+  @Column(name = ENTRY_ID)
   Long entryId;
 
-  @Column(name = "game_id")
+  @Column(name = GAME_ID)
   UUID gameId;
 
-  @Column(name = "user_id")
+  @Column(name = USER_ID)
   String userId;
 
-  @Column(name = "role")
+  @Column(name = ROLE)
   String role;
 
   public static Map<String, Object> map(Long entryId, UUID gameId, String userId, String role) {
     Map<String, Object> map = new HashMap<>();
-    map.put("entry_id", entryId);
-    map.put("game_id", gameId);
-    map.put("user_id", userId);
-    map.put("role", role);
+    map.put(ENTRY_ID, entryId);
+    map.put(GAME_ID, gameId);
+    map.put(USER_ID, userId);
+    map.put(ROLE, role);
     return map;
   }
 

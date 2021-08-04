@@ -5,6 +5,7 @@ import io.vertx.codegen.format.SnakeCase;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.annotations.Column;
 import io.vertx.sqlclient.templates.annotations.RowMapped;
+import it.vitalegi.rpgboard.be.util.PreparedStatementBuilder;
 
 import java.time.OffsetDateTime;
 import java.util.HashMap;
@@ -14,30 +15,39 @@ import java.util.UUID;
 @DataObject(generateConverter = true)
 @RowMapped(formatter = SnakeCase.class)
 public class DD5eCharSheet {
+  public static final String SHEET_ID = "sheet_id";
+  public static final String GAME_ID = "game_id";
+  public static final String OWNER_ID = "owner_id";
+  public static final String CONTENT = "content";
+  public static final String LAST_UPDATE = "last_update";
+  public static final PreparedStatementBuilder BUILDER =
+      PreparedStatementBuilder.init()
+          .tableName("RPG_DD5e_Sheet")
+          .fields(SHEET_ID, GAME_ID, OWNER_ID, CONTENT, LAST_UPDATE);
 
-  @Column(name = "sheet_id")
+  @Column(name = SHEET_ID)
   UUID sheetId;
 
-  @Column(name = "game_id")
+  @Column(name = GAME_ID)
   UUID gameId;
 
-  @Column(name = "owner_id")
+  @Column(name = OWNER_ID)
   String ownerId;
 
-  @Column(name = "content")
+  @Column(name = CONTENT)
   JsonObject content;
 
-  @Column(name = "last_update")
+  @Column(name = LAST_UPDATE)
   OffsetDateTime lastUpdate;
 
   public static Map<String, Object> map(
       UUID sheetId, UUID gameId, String ownerId, JsonObject content, OffsetDateTime lastUpdate) {
     Map<String, Object> map = new HashMap<>();
-    map.put("sheet_id", sheetId);
-    map.put("game_id", gameId);
-    map.put("owner_id", ownerId);
-    map.put("content", content);
-    map.put("last_update", lastUpdate);
+    map.put(SHEET_ID, sheetId);
+    map.put(GAME_ID, gameId);
+    map.put(OWNER_ID, ownerId);
+    map.put(CONTENT, content);
+    map.put(LAST_UPDATE, lastUpdate);
     return map;
   }
 
