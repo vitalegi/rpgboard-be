@@ -99,6 +99,22 @@ public class MainVerticle extends AbstractVerticle {
               eventBus.request("game.get", message, reply -> handleResponse(ctx, reply));
             });
 
+    router
+        .delete("/api/game/:gameId")
+        .handler(
+            ctx -> {
+              JsonObject message = new JsonObject().put("gameId", ctx.pathParam("gameId"));
+              eventBus.request("game.delete", message, reply -> handleResponse(ctx, reply));
+            });
+
+    router
+        .get("/api/games")
+        .handler(
+            ctx -> {
+              JsonObject message = new JsonObject();
+              eventBus.request("game.getAll", message, reply -> handleResponse(ctx, reply));
+            });
+
     log.info("Deployed routes");
     for (Route route : router.getRoutes()) {
       String methods = "";

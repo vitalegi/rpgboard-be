@@ -45,6 +45,15 @@ public class Game {
     return map;
   }
 
+  public static Map<String, Object> map(Game game) {
+    Map<String, Object> map = new HashMap<>();
+    map.put(GAME_ID, game.getId());
+    map.put(NAME, game.getName());
+    map.put(OWNER_ID, game.getOwnerId());
+    map.put(IS_OPEN, game.getOpen());
+    return map;
+  }
+
   public UUID getId() {
     return id;
   }

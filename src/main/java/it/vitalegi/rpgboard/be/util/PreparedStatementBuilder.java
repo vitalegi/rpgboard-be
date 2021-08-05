@@ -29,9 +29,9 @@ public class PreparedStatementBuilder {
     sb.append("INSERT INTO ");
     sb.append(tableName);
     List<String> insertFields = diff(fields, skipFields);
-    sb.append(insertFields.stream().collect(joinWithParenthesis()));
+    sb.append(insertFields.stream().collect(join(", ", "(", ")")));
     sb.append(" VALUES ");
-    sb.append(insertFields.stream().map(this::placeholder).collect(joinWithParenthesis()));
+    sb.append(insertFields.stream().map(this::placeholder).collect(join(", ", "(", ")")));
     sb.append(returning(fields));
     sb.append(";");
     return sb.toString();
@@ -42,10 +42,10 @@ public class PreparedStatementBuilder {
     sb.append("UPDATE ");
     sb.append(tableName);
     sb.append(" SET ");
-    sb.append(fields.stream().map(this::fieldIsSelf).collect(Collectors.joining(", ")));
+    sb.append(fields.stream().map(this::eq).collect(Collectors.joining(", ")));
 
     sb.append(" WHERE ");
-    sb.append(fieldIsSelf(name));
+    sb.append(eq(name));
     sb.append(returning(fields));
     sb.append(";");
     return sb.toString();
@@ -57,7 +57,7 @@ public class PreparedStatementBuilder {
     sb.append(tableName);
 
     sb.append(" WHERE ");
-    sb.append(fieldIsSelf(name));
+    sb.append(eq(name));
 
     sb.append(returning(fields));
     sb.append(";");
@@ -73,7 +73,7 @@ public class PreparedStatementBuilder {
 
     if (!fields.isEmpty()) {
       sb.append(" WHERE ");
-      sb.append(fields.stream().map(this::fieldIsSelf).collect(Collectors.joining(" AND ")));
+      sb.append(fields.stream().map(this::eq).collect(Collectors.joining(" AND ")));
     }
     sb.append(";");
     return sb.toString();
@@ -83,7 +83,7 @@ public class PreparedStatementBuilder {
     return " RETURNING " + String.join(", ", fields);
   }
 
-  protected String fieldIsSelf(String field) {
+  protected String eq(String field) {
     return field + "=#{" + field + "}";
   }
 
@@ -91,8 +91,9 @@ public class PreparedStatementBuilder {
     return "#{" + field + "}";
   }
 
-  protected Collector<CharSequence, ?, String> joinWithParenthesis() {
-    return Collectors.joining(", ", "(", ")");
+  protected Collector<CharSequence, ?, String> join(
+      String delimiter, String prefix, String suffix) {
+    return Collectors.joining(delimiter, prefix, suffix);
   }
 
   protected List<String> diff(List<String> list, List<String> toRemove) {

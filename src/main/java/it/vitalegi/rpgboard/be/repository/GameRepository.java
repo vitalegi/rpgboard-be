@@ -2,7 +2,7 @@ package it.vitalegi.rpgboard.be.repository;
 
 import io.reactivex.Observable;
 import io.reactivex.Single;
-import io.vertx.reactivex.pgclient.PgPool;
+import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
 import it.vitalegi.rpgboard.be.reactivex.data.Mappers;
 import org.slf4j.Logger;
@@ -20,41 +20,31 @@ public class GameRepository {
   private static final String FIND_BY_GAME_ID =
       Game.BUILDER.searchEquals(Collections.singletonList(Game.GAME_ID));
   private static final String FIND_ALL = Game.BUILDER.searchEquals(Collections.emptyList());
-
+  protected DatabaseProxy<Game> proxy;
   Logger log = LoggerFactory.getLogger(this.getClass());
 
-  protected DatabaseProxy<Game> proxy;
-  protected PgPool client;
-
-  public GameRepository() {}
-
-  public GameRepository(PgPool client) {
-    this.client = client;
-    proxy = new DefaultCrudRepository<Game>(client, Mappers.GAME);
+  public GameRepository() {
+    proxy = new DefaultCrudRepository<Game>(Mappers.GAME);
   }
 
-  public Observable<Game> add(Game game) {
-    return proxy.updateSingle(
-        INSERT, Game.map(null, game.getName(), game.getOwnerId(), game.getOpen()));
+  public Observable<Game> add(SqlConnection connection, Game game) {
+    return proxy.updateSingle(connection, INSERT, Game.map(game));
   }
 
-  public Single<Game> update(UUID gameId, String name, String ownerId, Boolean open) {
-    return proxy
-        .updateSingle(UPDATE_BY_GAME_ID, Game.map(gameId, name, ownerId, open))
-        .singleOrError();
+  public Observable<Game> update(SqlConnection connection, Game game) {
+    return proxy.updateSingle(connection, UPDATE_BY_GAME_ID, Game.map(game));
   }
 
-  public Single<Game> delete(UUID gameId) {
-    return proxy
-        .updateSingle(DELETE_BY_GAME_ID, Game.map(gameId, null, null, null))
-        .singleOrError();
+  public Observable<Game> delete(SqlConnection connection, UUID gameId) {
+    return proxy.updateSingle(connection, DELETE_BY_GAME_ID, Game.map(gameId, null, null, null));
   }
 
-  public Single<Game> getById(UUID gameId) {
-    return proxy.querySingle(FIND_BY_GAME_ID, Collections.singletonMap(Game.GAME_ID, gameId));
+  public Observable<Game> getById(SqlConnection connection, UUID gameId) {
+    return proxy.querySingle(
+        connection, FIND_BY_GAME_ID, Collections.singletonMap(Game.GAME_ID, gameId));
   }
 
-  public Single<List<Game>> getAll() {
-    return proxy.queryList(FIND_ALL, Collections.emptyMap());
+  public Single<List<Game>> getAll(SqlConnection connection) {
+    return proxy.queryList(connection, FIND_ALL, Collections.emptyMap());
   }
 }

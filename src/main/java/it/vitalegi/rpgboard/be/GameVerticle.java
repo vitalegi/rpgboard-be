@@ -1,6 +1,9 @@
 package it.vitalegi.rpgboard.be;
 
+import io.reactivex.Maybe;
 import io.reactivex.Single;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.pgclient.SslMode;
@@ -8,6 +11,7 @@ import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.pgclient.PgPool;
+import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
 import it.vitalegi.rpgboard.be.repository.GameRepository;
 import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthProvider;
@@ -19,9 +23,9 @@ import java.util.List;
 import java.util.UUID;
 
 public class GameVerticle extends AbstractVerticle {
-  Logger log = LoggerFactory.getLogger(GameVerticle.class);
-
   protected GameRepository gameRepository;
+  protected PgPool client;
+  Logger log = LoggerFactory.getLogger(GameVerticle.class);
 
   @Override
   public void start(Promise<Void> startPromise) throws Exception {
@@ -53,92 +57,95 @@ public class GameVerticle extends AbstractVerticle {
 
   protected void initRepositories() {
     SslMode sslMode = SslMode.valueOf(config().getJsonObject("database").getString("sslMode"));
-    PgPool client = VertxUtil.pool(vertx, sslMode);
-    gameRepository = new GameRepository(client);
+    client = VertxUtil.pool(vertx, sslMode);
+    gameRepository = new GameRepository();
   }
 
   protected void addGame(Message<JsonObject> msg) {
     log.info("add game");
-
-    Single.just(msg)
-        .map(
-            m -> {
-              log.info("map");
-              JsonObject body = msg.body();
-              String name = body.getString("name");
-              String ownerId = body.getString("ownerId");
-              Boolean open = body.getBoolean("open");
-              if (name == null || ownerId == null || open == null) {
-                throw new NullPointerException();
-              }
-              Game game = new Game();
-              game.setName(name);
-              game.setOwnerId(ownerId);
-              game.setOpen(open);
-              log.info("map {}", game);
-              return game;
-            })
-        .flatMap(game -> gameRepository.add(game).singleOrError())
-        .subscribe(game -> msg.reply(JsonObject.mapFrom(game)), VertxUtil.handleError(msg));
+    conn(conn ->
+            Single.just(msg)
+                .map(this::mapGameParams)
+                .map(notNull(Game::getName, "name"))
+                .map(notNull(Game::getOwnerId, "ownerId"))
+                .map(notNull(Game::getOpen, "open"))
+                .flatMap(game -> gameRepository.add(conn, game).singleOrError())
+                .map(log("Step 1"))
+                .toMaybe())
+        .subscribe(replyJson(msg), handleError(msg));
   }
 
-  protected Single<Game> getGame(Message<JsonObject> msg) {
+  protected <T> Maybe<T> tx(Function<SqlConnection, Maybe<T>> function) {
+    return client.rxWithTransaction(function);
+  }
+
+  protected <T> Maybe<T> conn(Function<SqlConnection, Maybe<T>> function) {
+    return client.rxWithConnection(function);
+  }
+
+  protected <E> Function<E, E> log(String msg) {
+    return (E e) -> {
+      log.info(">{}: {}", msg, e);
+      return e;
+    };
+  }
+
+  protected Game mapGameParams(Message<JsonObject> msg) {
+    JsonObject body = msg.body();
+    Game game = new Game();
+    game.setId(getUUID(body.getString("gameId")));
+    game.setName(body.getString("name"));
+    game.setOwnerId(body.getString("ownerId"));
+    game.setOpen(body.getBoolean("open"));
+    log.info("map {}", game);
+    return game;
+  }
+
+  protected void getGame(Message<JsonObject> msg) {
     UUID gameId = getUUID(msg.body().getString("gameId"));
     log.info("getGame {}", gameId);
-    return gameRepository
-        .getById(gameId)
-        .doOnSuccess(
-            game -> {
-              msg.reply(JsonObject.mapFrom(game));
-            })
-        .doOnError(VertxUtil.handleError(msg));
+    conn(conn ->
+            Single.just(gameId)
+                .flatMap(id -> gameRepository.getById(conn, gameId).singleOrError())
+                .toMaybe())
+        .subscribe(replyJson(msg), handleError(msg));
   }
 
-  protected Single<Game> updateGame(Message<JsonObject> msg) {
+  protected void updateGame(Message<JsonObject> msg) {
     log.info("updateGame");
-    UUID gameId = UUID.fromString(msg.body().getString("gameId"));
-    String name = msg.body().getString("name");
-    String ownerId = msg.body().getString("ownerId");
-    Boolean open = msg.body().getBoolean("open");
-
-    return gameRepository
-        .update(gameId, name, ownerId, open)
-        .doOnSuccess(
-            game -> {
-              msg.reply(JsonObject.mapFrom(game));
-            })
-        .doOnError(VertxUtil.handleError(msg));
+    conn(conn ->
+            Single.just(msg)
+                .map(this::mapGameParams)
+                .map(notNull(Game::getId, "gameId"))
+                .map(notNull(Game::getName, "name"))
+                .map(notNull(Game::getOwnerId, "ownerId"))
+                .map(notNull(Game::getOpen, "open"))
+                .flatMap(game -> gameRepository.update(conn, game).singleOrError())
+                .toMaybe())
+        .subscribe(replyJson(msg), handleError(msg));
   }
 
-  protected Single<Game> deleteGame(Message<JsonObject> msg) {
+  protected void deleteGame(Message<JsonObject> msg) {
     log.info("deleteGame");
     UUID gameId = UUID.fromString(msg.body().getString("gameId"));
 
-    return gameRepository
-        .delete(gameId)
-        .doOnSuccess(
-            game -> {
-              msg.reply(JsonObject.mapFrom(game));
-            })
-        .doOnError(VertxUtil.handleError(msg));
+    conn(conn -> gameRepository.delete(conn, gameId).singleOrError().toMaybe())
+        .subscribe(replyJson(msg), handleError(msg));
   }
 
-  protected Single<List<Game>> getGames(Message<JsonObject> msg) {
+  protected void getGames(Message<JsonObject> msg) {
     log.info("getGames");
-    return gameRepository
-        .getAll()
-        .doOnSuccess(
-            games -> {
-              msg.reply(JsonObject.mapFrom(games));
-            })
-        .doOnError(VertxUtil.handleError(msg));
+    conn(conn -> gameRepository.getAll(conn).toMaybe())
+        .subscribe(replyJsonArray(msg), handleError(msg));
   }
 
-  protected void publishBoards() {
-    gameRepository
-        .getAll()
-        .subscribe(
-            games -> vertx.eventBus().publish("external.outgoing.games", VertxUtil.jsonMap(games)));
+  protected <E> Function<E, E> notNull(Function<E, Object> extractor, String field) {
+    return obj -> {
+      if (extractor.apply(obj) == null) {
+        throw new IllegalArgumentException("Argument " + field + " must be not null");
+      }
+      return obj;
+    };
   }
 
   protected UUID getUUID(String str) {
@@ -146,5 +153,17 @@ public class GameVerticle extends AbstractVerticle {
       return null;
     }
     return UUID.fromString(str);
+  }
+
+  protected <E> Consumer<E> replyJson(Message<JsonObject> msg) {
+    return obj -> msg.reply(JsonObject.mapFrom(obj));
+  }
+
+  protected <E> Consumer<List<E>> replyJsonArray(Message<JsonObject> msg) {
+    return list -> msg.reply(VertxUtil.jsonMap(list));
+  }
+
+  protected Consumer<? super Throwable> handleError(Message<JsonObject> msg) {
+    return VertxUtil.handleError(msg);
   }
 }

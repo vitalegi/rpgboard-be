@@ -4,7 +4,7 @@ import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.reactivex.functions.Action;
 import io.reactivex.functions.Consumer;
-import io.vertx.reactivex.pgclient.PgPool;
+import io.vertx.reactivex.sqlclient.SqlConnection;
 import io.vertx.reactivex.sqlclient.templates.RowMapper;
 import io.vertx.reactivex.sqlclient.templates.SqlTemplate;
 import org.slf4j.Logger;
@@ -17,29 +17,29 @@ import java.util.stream.Collectors;
 public abstract class DatabaseProxy<E> {
 
   Logger log = LoggerFactory.getLogger(DatabaseProxy.class);
-  protected PgPool client;
-
-  public DatabaseProxy(PgPool client) {
-    this.client = client;
-  }
 
   protected abstract RowMapper<E> rowMapper();
 
-  protected Observable<E> updateSingle(String query, Map<String, Object> entry) {
-    return executeUpdate(query, entry);
+  protected Observable<E> updateSingle(
+      SqlConnection connection, String query, Map<String, Object> entry) {
+    return executeUpdate(connection, query, entry);
   }
 
-  protected Single<E> querySingle(String query, Map<String, Object> entry) {
-    return executeQuery(query, entry).singleOrError();
+  protected Observable<E> querySingle(
+      SqlConnection connection, String query, Map<String, Object> entry) {
+    return executeQuery(connection, query, entry);
   }
 
-  protected Single<List<E>> queryList(String query, Map<String, Object> entry) {
-    return executeQuery(query, entry).toList();
-  }
-
-  private Observable<E> executeQuery(String query, Map<String, Object> entry) {
+  protected Single<List<E>> queryList(
+      SqlConnection connection, String query, Map<String, Object> entry) {
     long start = System.currentTimeMillis();
-    return SqlTemplate.forQuery(client, query)
+    return executeQuery(connection, query, entry).toList();
+  }
+
+  private Observable<E> executeQuery(
+      SqlConnection connection, String query, Map<String, Object> entry) {
+    long start = System.currentTimeMillis();
+    return SqlTemplate.forQuery(connection, query)
         .mapTo(rowMapper())
         .rxExecute(entry)
         .flatMapObservable(Observable::fromIterable)
@@ -47,9 +47,10 @@ public abstract class DatabaseProxy<E> {
         .doOnComplete(onComplete(query, entry, start));
   }
 
-  private Observable<E> executeUpdate(String query, Map<String, Object> entry) {
+  private Observable<E> executeUpdate(
+      SqlConnection connection, String query, Map<String, Object> entry) {
     long start = System.currentTimeMillis();
-    return SqlTemplate.forUpdate(client, query)
+    return SqlTemplate.forUpdate(connection, query)
         .mapTo(rowMapper())
         .rxExecute(entry)
         .flatMapObservable(Observable::fromIterable)
