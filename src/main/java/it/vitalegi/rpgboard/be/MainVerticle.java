@@ -1,7 +1,6 @@
 package it.vitalegi.rpgboard.be;
 
 import io.reactivex.Completable;
-import io.reactivex.Single;
 import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.AsyncResult;
@@ -42,13 +41,14 @@ public class MainVerticle extends AbstractVerticle {
         });
     log.info("Setup properties");
 
-    Single<JsonObject> rxConfig = ConfigRetriever.create(vertx, setupConfig()).rxGetConfig();
-    rxConfig.doOnError(
-        error -> {
-          log.error("Failed to load props", error);
-          throw new RuntimeException(error);
-        });
-    return rxConfig.flatMapCompletable(this::rxStart);
+    return ConfigRetriever.create(vertx, setupConfig())
+        .rxGetConfig()
+        .doOnError(
+            error -> {
+              log.error("Failed to load props", error);
+              throw new RuntimeException(error);
+            })
+        .flatMapCompletable(this::rxStart);
   }
 
   public Completable rxStart(JsonObject config) {

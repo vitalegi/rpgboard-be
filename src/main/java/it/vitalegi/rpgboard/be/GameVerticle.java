@@ -14,9 +14,9 @@ import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.pgclient.PgPool;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
-import it.vitalegi.rpgboard.be.repository.GameRepository;
 import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthProvider;
 import it.vitalegi.rpgboard.be.security.FirebaseJWTDeliveryContext;
+import it.vitalegi.rpgboard.be.service.GameService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +24,8 @@ import java.util.List;
 import java.util.UUID;
 
 public class GameVerticle extends AbstractVerticle {
-  protected GameRepository gameRepository;
+  protected GameService gameService;
+
   protected PgPool client;
   Logger log = LoggerFactory.getLogger(GameVerticle.class);
 
@@ -37,7 +38,7 @@ public class GameVerticle extends AbstractVerticle {
 
     BeanContext beanContext = BeanContext.run();
     client = getClient();
-    gameRepository = beanContext.getBean(GameRepository.class);
+    gameService = beanContext.getBean(GameService.class);
 
     initAuth(eventBus);
 
@@ -54,43 +55,75 @@ public class GameVerticle extends AbstractVerticle {
     startPromise.complete();
   }
 
-  protected void initAuth(EventBus eventBus) {
-    FirebaseJWTAuthProvider authProvider = new FirebaseJWTAuthProvider();
-    eventBus.addInboundInterceptor(new FirebaseJWTDeliveryContext(vertx, authProvider));
-  }
-
-  protected PgPool getClient() {
-    SslMode sslMode = SslMode.valueOf(config().getJsonObject("database").getString("sslMode"));
-    return VertxUtil.pool(vertx, sslMode);
-  }
-
   protected void addGame(Message<JsonObject> msg) {
     log.info("add game");
-    conn(conn ->
+    cx(conn ->
             Single.just(msg)
                 .map(this::mapGameParams)
                 .map(notNull(Game::getName, "name"))
                 .map(notNull(Game::getOwnerId, "ownerId"))
                 .map(notNull(Game::getOpen, "open"))
-                .flatMap(game -> gameRepository.add(conn, game).singleOrError())
-                .map(log("Step 1"))
+                .flatMap(game -> gameService.addGame(conn, game))
                 .toMaybe())
         .subscribe(replyJson(msg), handleError(msg));
+  }
+
+  protected <E> Function<E, E> log(String msg) {
+    return (E e) -> {
+      log.info(">{}", msg);
+      return e;
+    };
+  }
+
+  protected void getGame(Message<JsonObject> msg) {
+    UUID gameId = getUUID(msg.body().getString("gameId"));
+    cx(conn -> gameService.getGame(conn, gameId).toMaybe())
+        .subscribe(replyJson(msg), handleError(msg));
+  }
+
+  protected void updateGame(Message<JsonObject> msg) {
+    log.info("updateGame");
+    cx(conn ->
+            Single.just(msg)
+                .map(this::mapGameParams)
+                .map(notNull(Game::getId, "id"))
+                .map(notNull(Game::getName, "name"))
+                .map(notNull(Game::getOwnerId, "ownerId"))
+                .map(notNull(Game::getOpen, "open"))
+                .flatMap(game -> gameService.updateGame(conn, game))
+                .toMaybe())
+        .subscribe(replyJson(msg), handleError(msg));
+  }
+
+  protected void deleteGame(Message<JsonObject> msg) {
+    log.info("deleteGame");
+    UUID gameId = getUUID(msg.body().getString("gameId"));
+
+    cx(conn -> gameService.deleteGame(conn, gameId).toMaybe())
+        .subscribe(replyJson(msg), handleError(msg));
+  }
+
+  protected void getGames(Message<JsonObject> msg) {
+    log.info("getGames");
+    cx(conn -> gameService.getGames(conn).toMaybe())
+        .subscribe(replyJsonArray(msg), handleError(msg));
+  }
+
+  protected <E> Function<E, E> notNull(Function<E, Object> extractor, String field) {
+    return obj -> {
+      if (extractor.apply(obj) == null) {
+        throw new IllegalArgumentException("Argument " + field + " must be not null");
+      }
+      return obj;
+    };
   }
 
   protected <T> Maybe<T> tx(Function<SqlConnection, Maybe<T>> function) {
     return client.rxWithTransaction(function);
   }
 
-  protected <T> Maybe<T> conn(Function<SqlConnection, Maybe<T>> function) {
+  protected <T> Maybe<T> cx(Function<SqlConnection, Maybe<T>> function) {
     return client.rxWithConnection(function);
-  }
-
-  protected <E> Function<E, E> log(String msg) {
-    return (E e) -> {
-      log.info(">{}: {}", msg, e);
-      return e;
-    };
   }
 
   protected Game mapGameParams(Message<JsonObject> msg) {
@@ -104,51 +137,14 @@ public class GameVerticle extends AbstractVerticle {
     return game;
   }
 
-  protected void getGame(Message<JsonObject> msg) {
-    UUID gameId = getUUID(msg.body().getString("gameId"));
-    log.info("getGame {}", gameId);
-    conn(conn ->
-            Single.just(gameId)
-                .flatMap(id -> gameRepository.getById(conn, gameId).singleOrError())
-                .toMaybe())
-        .subscribe(replyJson(msg), handleError(msg));
+  protected void initAuth(EventBus eventBus) {
+    FirebaseJWTAuthProvider authProvider = new FirebaseJWTAuthProvider();
+    eventBus.addInboundInterceptor(new FirebaseJWTDeliveryContext(vertx, authProvider));
   }
 
-  protected void updateGame(Message<JsonObject> msg) {
-    log.info("updateGame");
-    conn(conn ->
-            Single.just(msg)
-                .map(this::mapGameParams)
-                .map(notNull(Game::getId, "gameId"))
-                .map(notNull(Game::getName, "name"))
-                .map(notNull(Game::getOwnerId, "ownerId"))
-                .map(notNull(Game::getOpen, "open"))
-                .flatMap(game -> gameRepository.update(conn, game).singleOrError())
-                .toMaybe())
-        .subscribe(replyJson(msg), handleError(msg));
-  }
-
-  protected void deleteGame(Message<JsonObject> msg) {
-    log.info("deleteGame");
-    UUID gameId = UUID.fromString(msg.body().getString("gameId"));
-
-    conn(conn -> gameRepository.delete(conn, gameId).singleOrError().toMaybe())
-        .subscribe(replyJson(msg), handleError(msg));
-  }
-
-  protected void getGames(Message<JsonObject> msg) {
-    log.info("getGames");
-    conn(conn -> gameRepository.getAll(conn).toMaybe())
-        .subscribe(replyJsonArray(msg), handleError(msg));
-  }
-
-  protected <E> Function<E, E> notNull(Function<E, Object> extractor, String field) {
-    return obj -> {
-      if (extractor.apply(obj) == null) {
-        throw new IllegalArgumentException("Argument " + field + " must be not null");
-      }
-      return obj;
-    };
+  protected PgPool getClient() {
+    SslMode sslMode = SslMode.valueOf(config().getJsonObject("database").getString("sslMode"));
+    return VertxUtil.pool(vertx, sslMode);
   }
 
   protected UUID getUUID(String str) {

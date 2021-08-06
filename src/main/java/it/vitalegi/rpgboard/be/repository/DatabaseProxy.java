@@ -32,7 +32,6 @@ public abstract class DatabaseProxy<E> {
 
   protected Single<List<E>> queryList(
       SqlConnection connection, String query, Map<String, Object> entry) {
-    long start = System.currentTimeMillis();
     return executeQuery(connection, query, entry).toList();
   }
 

@@ -1,19 +1,20 @@
 package it.vitalegi.rpgboard.be;
 
-import io.reactivex.Observable;
+import io.reactivex.Single;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import it.vitalegi.rpgboard.be.data.Game;
-import it.vitalegi.rpgboard.be.repository.GameRepository;
-import org.junit.jupiter.api.Assertions;
+import it.vitalegi.rpgboard.be.service.GameService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.mockito.Mockito.*;
 
 @ExtendWith(VertxExtension.class)
 public class GameVerticleTest {
@@ -29,30 +30,32 @@ public class GameVerticleTest {
   }
 
   @Test
-  void addGameRequestMappingShouldBeComplete(Vertx vertx, VertxTestContext testContext) {
+  void addGameShouldCallServiceAndComplete(Vertx vertx, VertxTestContext testContext) {
+    GameService service = mock(GameService.class);
+    gameVerticle.gameService = service;
+    when(service.addGame(any(), any())).thenReturn(Single.just(new Game()));
 
-    gameVerticle.setGameRepository(
-        new GameRepository() {
-          @Override
-          public Observable<Game> add(Game game) {
-            testContext.verify(
-                () -> {
-                  Assertions.assertEquals("A", game.getName());
-                  Assertions.assertEquals("B", game.getOwnerId());
-                  Assertions.assertEquals(true, game.getOpen());
-                  testContext.completeNow();
-                });
-            return Observable.just(new Game());
-          }
-        });
     vertx
         .eventBus()
-        .publish(
-            "game.add", new JsonObject().put("name", "A").put("ownerId", "B").put("open", true));
+        .request(
+            "game.add", new JsonObject().put("name", "A").put("ownerId", "B").put("open", true))
+        .onSuccess(
+            msg -> {
+              testContext.verify(
+                  () -> {
+                    verify(service, times(1)).addGame(any(), any());
+                    testContext.completeNow();
+                  });
+            })
+        .onFailure(testContext::failNow);
   }
 
   @Test
   void addGameMissingFieldShouldFail(Vertx vertx, VertxTestContext testContext) throws Throwable {
+    GameService service = mock(GameService.class);
+    gameVerticle.gameService = service;
+    when(service.addGame(any(), any())).thenReturn(Single.just(new Game()));
+
     vertx
         .eventBus()
         .request("game.add", new JsonObject().put("ownerId", "B").put("open", true))
@@ -63,14 +66,5 @@ public class GameVerticleTest {
   @Test
   void gameVerticleIsDeployed(Vertx vertx, VertxTestContext testContext) throws Throwable {
     testContext.completeNow();
-  }
-
-  private static class GameVerticleMock extends GameVerticle {
-    @Override
-    protected void initRepositories() {}
-
-    public void setGameRepository(GameRepository gameRepository) {
-      this.gameRepository = gameRepository;
-    }
   }
 }
