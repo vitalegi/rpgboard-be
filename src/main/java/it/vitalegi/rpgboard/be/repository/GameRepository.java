@@ -8,10 +8,12 @@ import it.vitalegi.rpgboard.be.reactivex.data.Mappers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Singleton;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+@Singleton
 public class GameRepository {
 
   private static final String INSERT = Game.BUILDER.add(Collections.singletonList(Game.GAME_ID));

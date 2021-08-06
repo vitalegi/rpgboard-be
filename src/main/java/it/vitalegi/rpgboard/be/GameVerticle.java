@@ -1,5 +1,6 @@
 package it.vitalegi.rpgboard.be;
 
+import io.micronaut.context.BeanContext;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
 import io.reactivex.functions.Consumer;
@@ -34,7 +35,10 @@ public class GameVerticle extends AbstractVerticle {
     vertx.exceptionHandler(
         e -> log.error("Unhandled exception {}: {}", e.getClass().getName(), e.getMessage(), e));
 
-    initRepositories();
+    BeanContext beanContext = BeanContext.run();
+    client = getClient();
+    gameRepository = beanContext.getBean(GameRepository.class);
+
     initAuth(eventBus);
 
     eventBus.consumer("external.incoming.game.add", this::addGame);
@@ -55,10 +59,9 @@ public class GameVerticle extends AbstractVerticle {
     eventBus.addInboundInterceptor(new FirebaseJWTDeliveryContext(vertx, authProvider));
   }
 
-  protected void initRepositories() {
+  protected PgPool getClient() {
     SslMode sslMode = SslMode.valueOf(config().getJsonObject("database").getString("sslMode"));
-    client = VertxUtil.pool(vertx, sslMode);
-    gameRepository = new GameRepository();
+    return VertxUtil.pool(vertx, sslMode);
   }
 
   protected void addGame(Message<JsonObject> msg) {
