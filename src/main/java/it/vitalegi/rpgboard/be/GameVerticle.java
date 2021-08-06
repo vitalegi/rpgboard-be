@@ -17,6 +17,7 @@ import it.vitalegi.rpgboard.be.data.Game;
 import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthProvider;
 import it.vitalegi.rpgboard.be.security.FirebaseJWTDeliveryContext;
 import it.vitalegi.rpgboard.be.service.GameService;
+import it.vitalegi.rpgboard.be.util.JsonObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +57,7 @@ public class GameVerticle extends AbstractVerticle {
   }
 
   protected void addGame(Message<JsonObject> msg) {
-    log.info("add game");
+    JsonObserver observer = JsonObserver.init(msg, "addGame");
     cx(conn ->
             Single.just(msg)
                 .map(this::mapGameParams)
@@ -65,7 +66,7 @@ public class GameVerticle extends AbstractVerticle {
                 .map(notNull(Game::getOpen, "open"))
                 .flatMap(game -> gameService.addGame(conn, game))
                 .toMaybe())
-        .subscribe(replyJson(msg), handleError(msg));
+        .subscribe(observer);
   }
 
   protected <E> Function<E, E> log(String msg) {
@@ -76,13 +77,13 @@ public class GameVerticle extends AbstractVerticle {
   }
 
   protected void getGame(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "getGame");
     UUID gameId = getUUID(msg.body().getString("gameId"));
-    cx(conn -> gameService.getGame(conn, gameId).toMaybe())
-        .subscribe(replyJson(msg), handleError(msg));
+    cx(conn -> gameService.getGame(conn, gameId).toMaybe()).subscribe(observer);
   }
 
   protected void updateGame(Message<JsonObject> msg) {
-    log.info("updateGame");
+    JsonObserver observer = JsonObserver.init(msg, "updateGame");
     cx(conn ->
             Single.just(msg)
                 .map(this::mapGameParams)
@@ -92,21 +93,19 @@ public class GameVerticle extends AbstractVerticle {
                 .map(notNull(Game::getOpen, "open"))
                 .flatMap(game -> gameService.updateGame(conn, game))
                 .toMaybe())
-        .subscribe(replyJson(msg), handleError(msg));
+        .subscribe(observer);
   }
 
   protected void deleteGame(Message<JsonObject> msg) {
-    log.info("deleteGame");
+    JsonObserver observer = JsonObserver.init(msg, "deleteGame");
     UUID gameId = getUUID(msg.body().getString("gameId"));
 
-    cx(conn -> gameService.deleteGame(conn, gameId).toMaybe())
-        .subscribe(replyJson(msg), handleError(msg));
+    cx(conn -> gameService.deleteGame(conn, gameId).toMaybe()).subscribe(observer);
   }
 
   protected void getGames(Message<JsonObject> msg) {
-    log.info("getGames");
-    cx(conn -> gameService.getGames(conn).toMaybe())
-        .subscribe(replyJsonArray(msg), handleError(msg));
+    JsonObserver observer = JsonObserver.init(msg, "getGames");
+    cx(conn -> gameService.getGames(conn).toMaybe()).subscribe(observer);
   }
 
   protected <E> Function<E, E> notNull(Function<E, Object> extractor, String field) {

@@ -13,7 +13,7 @@ public class LogUtil {
         methodName,
         System.currentTimeMillis() - startTime,
         uid,
-        additionalNotes);
+        additionalNotes != null ? additionalNotes : "");
   }
 
   public static void failure(
@@ -27,7 +27,7 @@ public class LogUtil {
         e.getMessage(),
         getRoot(e),
         getRoot(e).getMessage(),
-        additionalNotes);
+        additionalNotes != null ? additionalNotes : "");
   }
 
   protected static Throwable getRoot(Throwable e) {

@@ -187,3 +187,5 @@ nbdist/
 .editorconfig
 .classpath
 .idea/runConfigurations/
+app-start.bat
+app-build.bat
