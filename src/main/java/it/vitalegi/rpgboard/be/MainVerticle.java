@@ -5,6 +5,7 @@ import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Handler;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
@@ -23,9 +24,8 @@ import io.vertx.reactivex.ext.web.handler.CorsHandler;
 import io.vertx.reactivex.ext.web.handler.SessionHandler;
 import io.vertx.reactivex.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.reactivex.ext.web.sstore.LocalSessionStore;
-import it.vitalegi.rpgboard.be.security.DummyAuthProvider;
-import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthProvider;
-import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthenticationHandler;
+import it.vitalegi.rpgboard.be.security.AuthProviderFactory;
+import it.vitalegi.rpgboard.be.security.FirebaseAuthProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,35 +68,18 @@ public class MainVerticle extends AbstractVerticle {
         .handler(BodyHandler.create())
         .handler(SessionHandler.create(LocalSessionStore.create(vertx)));
 
-    FirebaseJWTAuthProvider authProvider = new FirebaseJWTAuthProvider();
-    FirebaseJWTAuthProvider.init();
+    FirebaseAuthProvider.init();
 
-    FirebaseJWTAuthenticationHandler authHandler =
-        new FirebaseJWTAuthenticationHandler() {
-
-          protected String getToken(RoutingContext ctx) {
-            return ctx.request().getParam("jwt");
-          }
-        };
-    authHandler.setProvider(authProvider);
+    Handler<RoutingContext> authProvider = new AuthProviderFactory(config).getProvider();
 
     SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
     Router sockJsRouter = sockJSHandler.bridge(getBridgeOptions());
-    router.route("/eventbus/*").blockingHandler(authHandler);
+    router.route("/eventbus/*").blockingHandler(authProvider);
     router.mountSubRouter("/eventbus", sockJsRouter);
 
     EventBus eventBus = vertx.eventBus();
 
-    String authMethod = config.getJsonObject("security").getString("auth");
-    if (authMethod.equals(DummyAuthProvider.METHOD_NAME)) {
-      log.info("DUMMY auth method");
-      router.route("/api/*").handler(new DummyAuthProvider());
-    } else if (authMethod.equals("FIREBASE")) {
-      log.info("FIREBASE auth method");
-      router.route("/api/*").blockingHandler(authHandler);
-    } else {
-      throw new IllegalArgumentException("Invalid auth method " + authMethod);
-    }
+    router.route("/api/*").blockingHandler(authProvider);
 
     router
         .post("/api/game")

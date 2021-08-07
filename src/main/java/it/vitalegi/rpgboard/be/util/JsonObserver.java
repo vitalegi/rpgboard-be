@@ -5,6 +5,7 @@ import io.reactivex.annotations.NonNull;
 import io.reactivex.disposables.Disposable;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.eventbus.Message;
+import it.vitalegi.rpgboard.be.MainVerticle;
 import it.vitalegi.rpgboard.be.logging.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,7 @@ public class JsonObserver implements MaybeObserver<Object> {
 
   @Override
   public void onSuccess(@NonNull Object entry) {
-    LogUtil.success(methodName, startTime, null, null);
+    LogUtil.success(methodName, startTime, getUserId(msg), null);
     if (entry instanceof List) {
       msg.reply(VertxUtil.jsonMap((List<?>) entry));
     } else {
@@ -42,7 +43,7 @@ public class JsonObserver implements MaybeObserver<Object> {
 
   @Override
   public void onError(@NonNull Throwable failure) {
-    LogUtil.failure(methodName, startTime, null, null, failure);
+    LogUtil.failure(methodName, startTime, getUserId(msg), null, failure);
     log.error(failure.getMessage(), failure);
     msg.fail(
         500,
@@ -54,4 +55,8 @@ public class JsonObserver implements MaybeObserver<Object> {
 
   @Override
   public void onComplete() {}
+
+  protected String getUserId(Message<JsonObject> msg) {
+    return msg.headers().get(MainVerticle.UID);
+  }
 }

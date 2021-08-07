@@ -21,8 +21,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 
-public class FirebaseJWTAuthProvider {
-  static Logger log = LoggerFactory.getLogger(FirebaseJWTAuthProvider.class);
+public class FirebaseAuthProvider extends AuthProvider {
+  public static final String METHOD_NAME = "FIREBASE";
+  static Logger log = LoggerFactory.getLogger(FirebaseAuthProvider.class);
 
   public static void init() {
     log.info("Init");
@@ -37,7 +38,7 @@ public class FirebaseJWTAuthProvider {
               .setCredentials(GoogleCredentials.fromStream(firebase))
               .build();
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new InvalidTokenException(e);
     }
 
     FirebaseApp.initializeApp(options);
@@ -64,7 +65,7 @@ public class FirebaseJWTAuthProvider {
     }
   }
 
-  protected Set<Authorization> getAuthorizations(FirebaseToken auth) {
+  private Set<Authorization> getAuthorizations(FirebaseToken auth) {
     final Set<Authorization> authorizations = new HashSet<>();
     authorizations.add(PermissionBasedAuthorization.create("REGISTERED_USER"));
     return authorizations;

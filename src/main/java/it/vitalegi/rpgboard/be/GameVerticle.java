@@ -13,8 +13,9 @@ import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.pgclient.PgPool;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
-import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthProvider;
-import it.vitalegi.rpgboard.be.security.FirebaseJWTDeliveryContext;
+import it.vitalegi.rpgboard.be.security.AuthProvider;
+import it.vitalegi.rpgboard.be.security.AuthProviderFactory;
+import it.vitalegi.rpgboard.be.security.WebSocketAuthValidator;
 import it.vitalegi.rpgboard.be.service.GameService;
 import it.vitalegi.rpgboard.be.util.JsonObserver;
 import it.vitalegi.rpgboard.be.util.VertxUtil;
@@ -24,10 +25,9 @@ import org.slf4j.LoggerFactory;
 import java.util.UUID;
 
 public class GameVerticle extends AbstractVerticle {
+  static Logger log = LoggerFactory.getLogger(GameVerticle.class);
   protected GameService gameService;
-
   protected PgPool client;
-  Logger log = LoggerFactory.getLogger(GameVerticle.class);
 
   @Override
   public void start(Promise<Void> startPromise) throws Exception {
@@ -40,7 +40,8 @@ public class GameVerticle extends AbstractVerticle {
     client = getClient();
     gameService = beanContext.getBean(GameService.class);
 
-    initAuth(eventBus);
+    AuthProvider authProvider = new AuthProviderFactory(config()).getProvider();
+    eventBus.addInboundInterceptor(new WebSocketAuthValidator(vertx, authProvider));
 
     eventBus.consumer("external.incoming.game.add", this::addGame);
     eventBus.consumer("external.incoming.game.getAll", this::getGames);
@@ -135,11 +136,6 @@ public class GameVerticle extends AbstractVerticle {
     return game;
   }
 
-  protected void initAuth(EventBus eventBus) {
-    FirebaseJWTAuthProvider authProvider = new FirebaseJWTAuthProvider();
-    eventBus.addInboundInterceptor(new FirebaseJWTDeliveryContext(vertx, authProvider));
-  }
-
   protected PgPool getClient() {
     SslMode sslMode = SslMode.valueOf(config().getJsonObject("database").getString("sslMode"));
     return VertxUtil.pool(vertx, sslMode);
@@ -153,7 +149,7 @@ public class GameVerticle extends AbstractVerticle {
   }
 
   protected String getUserId(Message<JsonObject> msg) {
-    return msg.headers().get("uid");
+    return msg.headers().get(MainVerticle.UID);
   }
 
   protected <E> Function<E, E> log(String msg) {
