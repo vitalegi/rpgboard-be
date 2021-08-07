@@ -1,5 +1,6 @@
 package it.vitalegi.rpgboard.be;
 
+import io.micronaut.context.BeanContext;
 import io.reactivex.Completable;
 import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
@@ -10,6 +11,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSBridgeOptions;
+import io.vertx.pgclient.SslMode;
 import io.vertx.reactivex.config.ConfigRetriever;
 import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.core.eventbus.EventBus;
@@ -23,10 +25,13 @@ import io.vertx.reactivex.ext.web.handler.CorsHandler;
 import io.vertx.reactivex.ext.web.handler.SessionHandler;
 import io.vertx.reactivex.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.reactivex.ext.web.sstore.LocalSessionStore;
+import io.vertx.reactivex.pgclient.PgPool;
 import it.vitalegi.rpgboard.be.security.AuthProvider;
 import it.vitalegi.rpgboard.be.security.AuthProviderFactory;
 import it.vitalegi.rpgboard.be.security.FirebaseAuthProvider;
 import it.vitalegi.rpgboard.be.security.WebSocketBridgeListener;
+import it.vitalegi.rpgboard.be.service.GamePlayerRoleServiceLocal;
+import it.vitalegi.rpgboard.be.util.VertxUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +67,7 @@ public class MainVerticle extends AbstractVerticle {
   public Completable rxStart(JsonObject config) {
     log.info("Setup properties done");
     vertx.deployVerticle(new GameVerticle(), new DeploymentOptions().setConfig(config));
+    BeanContext beanContext = BeanContext.run();
     Router router = Router.router(vertx);
     router
         .route()
@@ -73,10 +79,12 @@ public class MainVerticle extends AbstractVerticle {
 
     AuthProvider authProvider = new AuthProviderFactory(config).getProvider();
 
+    WebSocketBridgeListener wsBridgeListener =
+        new WebSocketBridgeListener(
+            authProvider, beanContext.getBean(GamePlayerRoleServiceLocal.class), getClient(config));
     SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
-    Router sockJsRouter =
-        sockJSHandler.bridge(getBridgeOptions(), new WebSocketBridgeListener(authProvider));
-    router.route("/eventbus/*"); // .blockingHandler(authProvider);
+    Router sockJsRouter = sockJSHandler.bridge(getBridgeOptions(), wsBridgeListener);
+    router.route("/eventbus/*");
     router.mountSubRouter("/eventbus", sockJsRouter);
 
     EventBus eventBus = vertx.eventBus();
@@ -146,7 +154,7 @@ public class MainVerticle extends AbstractVerticle {
     vertx.setPeriodic(
         10000,
         t -> {
-          vertx.eventBus().publish("external.outgoing.games", "hello!");
+          vertx.eventBus().publish("external.outgoing.games.123", "hello!");
         });
     return out;
   }
@@ -218,6 +226,11 @@ public class MainVerticle extends AbstractVerticle {
               .put("description", reply.cause().getMessage());
       context.json(payload);
     }
+  }
+
+  protected PgPool getClient(JsonObject config) {
+    SslMode sslMode = SslMode.valueOf(config.getJsonObject("database").getString("sslMode"));
+    return VertxUtil.pool(vertx, sslMode);
   }
 
   private DeliveryOptions deliveryOptions(RoutingContext ctx) {

@@ -46,7 +46,6 @@ public class GameVerticle extends AbstractVerticle {
     eventBus.consumer("external.incoming.game.add", this::addGame);
     eventBus.consumer("external.incoming.game.getAll", this::getGames);
     eventBus.consumer("external.incoming.game.getById", this::getGame);
-
     eventBus.consumer("game.add", this::addGame);
     eventBus.consumer("game.get", this::getGame);
     eventBus.consumer("game.join", this::joinGame);

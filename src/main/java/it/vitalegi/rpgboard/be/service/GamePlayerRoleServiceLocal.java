@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.List;
 import java.util.UUID;
 
 @Singleton
@@ -29,18 +30,30 @@ public class GamePlayerRoleServiceLocal {
         .map(VertxUtil.debug("game player role created", GamePlayerRole::toString));
   }
 
+  public Single<List<GamePlayerRole>> getUserRoles(SqlConnection conn, UUID gameId, String userId) {
+    return gamePlayerRoleRepository.getUserRoles(conn, gameId, userId);
+  }
+
   public Single<Boolean> checkUserRole(
       SqlConnection conn, UUID gameId, String userId, String role) {
-    return gamePlayerRoleRepository
-        .hasUserRole(conn, gameId, userId, role)
+    return hasUserRole(conn, gameId, userId, role)
         .map(
             hasRole -> {
-              log.debug("Does {} have grant {} on game {}?", userId, gameId, role);
               if (!hasRole) {
                 throw new IllegalAccessException(
                     "User " + userId + " doesn't have role " + role + " on game " + gameId);
               }
               return true;
+            });
+  }
+
+  public Single<Boolean> hasUserRole(SqlConnection conn, UUID gameId, String userId, String role) {
+    return gamePlayerRoleRepository
+        .hasUserRole(conn, gameId, userId, role)
+        .map(
+            hasRole -> {
+              log.debug("Does {} have grant {} on game {}?", userId, gameId, role);
+              return hasRole;
             });
   }
 }
