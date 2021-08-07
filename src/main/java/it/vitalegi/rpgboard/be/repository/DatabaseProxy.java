@@ -71,7 +71,7 @@ public abstract class DatabaseProxy<E> {
 
   private Action onComplete(String query, Map<String, Object> entry, long start) {
     return () -> {
-      log.info(
+      log.debug(
           "DATABASE_STATS time_taken={}, status=OK, query='{}'",
           System.currentTimeMillis() - start,
           query);

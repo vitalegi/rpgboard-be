@@ -22,6 +22,7 @@ public class Asset {
   public static final PreparedStatementFactory BUILDER =
       PreparedStatementFactory.init()
           .tableName("RPG_Asset")
+          .primaryKey(ASSET_ID)
           .fields(ASSET_ID, GAME_ID, NAME, SIZE, CONTENT);
 
   @Column(name = ASSET_ID)
@@ -47,6 +48,21 @@ public class Asset {
     map.put(NAME, name);
     map.put(SIZE, size);
     map.put(CONTENT, content);
+    return map;
+  }
+
+  public static Map<String, Object> map(Asset entry) {
+    return map(
+        entry.getAssetId(),
+        entry.getGameId(),
+        entry.getName(),
+        entry.getSize(),
+        entry.getContent());
+  }
+
+  public static Map<String, Object> mapPK(UUID assetId) {
+    Map<String, Object> map = new HashMap<>();
+    map.put(ASSET_ID, assetId);
     return map;
   }
 

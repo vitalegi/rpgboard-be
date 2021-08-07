@@ -5,7 +5,6 @@ import io.reactivex.annotations.NonNull;
 import io.reactivex.disposables.Disposable;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.eventbus.Message;
-import it.vitalegi.rpgboard.be.VertxUtil;
 import it.vitalegi.rpgboard.be.logging.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

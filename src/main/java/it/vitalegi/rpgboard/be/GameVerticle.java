@@ -3,7 +3,6 @@ package it.vitalegi.rpgboard.be;
 import io.micronaut.context.BeanContext;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
-import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
@@ -18,10 +17,10 @@ import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthProvider;
 import it.vitalegi.rpgboard.be.security.FirebaseJWTDeliveryContext;
 import it.vitalegi.rpgboard.be.service.GameService;
 import it.vitalegi.rpgboard.be.util.JsonObserver;
+import it.vitalegi.rpgboard.be.util.VertxUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.UUID;
 
 public class GameVerticle extends AbstractVerticle {
@@ -58,28 +57,21 @@ public class GameVerticle extends AbstractVerticle {
 
   protected void addGame(Message<JsonObject> msg) {
     JsonObserver observer = JsonObserver.init(msg, "addGame");
-    cx(conn ->
-            Single.just(msg)
-                .map(this::mapGameParams)
-                .map(notNull(Game::getName, "name"))
-                .map(notNull(Game::getOwnerId, "ownerId"))
-                .map(notNull(Game::getOpen, "open"))
-                .flatMap(game -> gameService.addGame(conn, game))
-                .toMaybe())
+    JsonObject body = msg.body();
+    tx(conn -> {
+          String name = body.getString("name");
+          Boolean open = body.getBoolean("open");
+          return Single.just(msg)
+              .flatMap(m -> gameService.addGame(conn, getUserId(msg), name, open))
+              .toMaybe();
+        })
         .subscribe(observer);
-  }
-
-  protected <E> Function<E, E> log(String msg) {
-    return (E e) -> {
-      log.info(">{}", msg);
-      return e;
-    };
   }
 
   protected void getGame(Message<JsonObject> msg) {
     JsonObserver observer = JsonObserver.init(msg, "getGame");
     UUID gameId = getUUID(msg.body().getString("gameId"));
-    cx(conn -> gameService.getGame(conn, gameId).toMaybe()).subscribe(observer);
+    cx(conn -> gameService.getGame(conn, getUserId(msg), gameId).toMaybe()).subscribe(observer);
   }
 
   protected void updateGame(Message<JsonObject> msg) {
@@ -91,7 +83,7 @@ public class GameVerticle extends AbstractVerticle {
                 .map(notNull(Game::getName, "name"))
                 .map(notNull(Game::getOwnerId, "ownerId"))
                 .map(notNull(Game::getOpen, "open"))
-                .flatMap(game -> gameService.updateGame(conn, game))
+                .flatMap(game -> gameService.updateGame(conn, getUserId(msg), game))
                 .toMaybe())
         .subscribe(observer);
   }
@@ -100,12 +92,12 @@ public class GameVerticle extends AbstractVerticle {
     JsonObserver observer = JsonObserver.init(msg, "deleteGame");
     UUID gameId = getUUID(msg.body().getString("gameId"));
 
-    cx(conn -> gameService.deleteGame(conn, gameId).toMaybe()).subscribe(observer);
+    cx(conn -> gameService.deleteGame(conn, getUserId(msg), gameId).toMaybe()).subscribe(observer);
   }
 
   protected void getGames(Message<JsonObject> msg) {
     JsonObserver observer = JsonObserver.init(msg, "getGames");
-    cx(conn -> gameService.getGames(conn).toMaybe()).subscribe(observer);
+    cx(conn -> gameService.getGames(conn, getUserId(msg)).toMaybe()).subscribe(observer);
   }
 
   protected <E> Function<E, E> notNull(Function<E, Object> extractor, String field) {
@@ -153,15 +145,14 @@ public class GameVerticle extends AbstractVerticle {
     return UUID.fromString(str);
   }
 
-  protected <E> Consumer<E> replyJson(Message<JsonObject> msg) {
-    return obj -> msg.reply(JsonObject.mapFrom(obj));
+  protected String getUserId(Message<JsonObject> msg) {
+    return msg.headers().get("uid");
   }
 
-  protected <E> Consumer<List<E>> replyJsonArray(Message<JsonObject> msg) {
-    return list -> msg.reply(VertxUtil.jsonMap(list));
-  }
-
-  protected Consumer<? super Throwable> handleError(Message<JsonObject> msg) {
-    return VertxUtil.handleError(msg);
+  protected <E> Function<E, E> log(String msg) {
+    return (E e) -> {
+      log.info(">{}", msg);
+      return e;
+    };
   }
 }

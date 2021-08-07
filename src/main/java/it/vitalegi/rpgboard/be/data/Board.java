@@ -21,6 +21,7 @@ public class Board {
   public static final PreparedStatementFactory BUILDER =
       PreparedStatementFactory.init()
           .tableName("RPG_Board")
+          .primaryKey(BOARD_ID)
           .fields(BOARD_ID, GAME_ID, NAME, IS_ACTIVE);
 
   @Column(name = BOARD_ID)
@@ -41,6 +42,16 @@ public class Board {
     map.put(GAME_ID, gameId);
     map.put(NAME, name);
     map.put(IS_ACTIVE, active);
+    return map;
+  }
+
+  public static Map<String, Object> map(Board entry) {
+    return map(entry.getBoardId(), entry.getGameId(), entry.getName(), entry.getActive());
+  }
+
+  public static Map<String, Object> mapPK(UUID boardId) {
+    Map<String, Object> map = new HashMap<>();
+    map.put(BOARD_ID, boardId);
     return map;
   }
 

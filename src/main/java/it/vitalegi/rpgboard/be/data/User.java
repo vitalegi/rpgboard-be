@@ -16,7 +16,10 @@ public class User {
   public static final String USER_ID = "user_id";
   public static final String USERNAME = "username";
   public static final PreparedStatementFactory BUILDER =
-      PreparedStatementFactory.init().tableName("RPG_User").fields(USER_ID, USERNAME);
+      PreparedStatementFactory.init()
+          .tableName("RPG_User")
+          .primaryKey(USER_ID)
+          .fields(USER_ID, USERNAME);
 
   @Column(name = USER_ID)
   String id;
@@ -28,6 +31,16 @@ public class User {
     Map<String, Object> map = new HashMap<>();
     map.put(USER_ID, id);
     map.put(USERNAME, name);
+    return map;
+  }
+
+  public static Map<String, Object> map(User entry) {
+    return map(entry.getId(), entry.getName());
+  }
+
+  public static Map<String, Object> mapPK(String userId) {
+    Map<String, Object> map = new HashMap<>();
+    map.put(USER_ID, userId);
     return map;
   }
 

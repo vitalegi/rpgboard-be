@@ -21,6 +21,7 @@ public class GamePlayerRole {
   public static final PreparedStatementFactory BUILDER =
       PreparedStatementFactory.init()
           .tableName("RPG_GamePlayerRole")
+          .primaryKey(ENTRY_ID)
           .fields(ENTRY_ID, GAME_ID, USER_ID, ROLE);
 
   @Column(name = ENTRY_ID)
@@ -41,6 +42,16 @@ public class GamePlayerRole {
     map.put(GAME_ID, gameId);
     map.put(USER_ID, userId);
     map.put(ROLE, role);
+    return map;
+  }
+
+  public static Map<String, Object> map(GamePlayerRole entry) {
+    return map(entry.getEntryId(), entry.getGameId(), entry.getUserId(), entry.getRole());
+  }
+
+  public static Map<String, Object> mapPK(UUID entryId) {
+    Map<String, Object> map = new HashMap<>();
+    map.put(ENTRY_ID, entryId);
     return map;
   }
 

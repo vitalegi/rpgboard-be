@@ -23,6 +23,7 @@ public class DD5eCharSheet {
   public static final PreparedStatementFactory BUILDER =
       PreparedStatementFactory.init()
           .tableName("RPG_DD5e_Sheet")
+          .primaryKey(SHEET_ID)
           .fields(SHEET_ID, GAME_ID, OWNER_ID, CONTENT, LAST_UPDATE);
 
   @Column(name = SHEET_ID)
@@ -48,6 +49,21 @@ public class DD5eCharSheet {
     map.put(OWNER_ID, ownerId);
     map.put(CONTENT, content);
     map.put(LAST_UPDATE, lastUpdate);
+    return map;
+  }
+
+  public static Map<String, Object> map(DD5eCharSheet entry) {
+    return map(
+        entry.getSheetId(),
+        entry.getGameId(),
+        entry.getOwnerId(),
+        entry.getContent(),
+        entry.getLastUpdate());
+  }
+
+  public static Map<String, Object> mapPK(UUID sheetId) {
+    Map<String, Object> map = new HashMap<>();
+    map.put(SHEET_ID, sheetId);
     return map;
   }
 

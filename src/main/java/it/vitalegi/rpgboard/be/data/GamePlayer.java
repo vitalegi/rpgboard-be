@@ -7,6 +7,7 @@ import io.vertx.sqlclient.templates.annotations.Column;
 import io.vertx.sqlclient.templates.annotations.RowMapped;
 import it.vitalegi.rpgboard.be.repository.querybuilder.pg.PreparedStatementFactory;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -36,6 +37,17 @@ public class GamePlayer {
     map.put("game_id", gameId);
     map.put("user_id", userId);
     map.put("username", username);
+    return map;
+  }
+
+  public static Map<String, Object> map(GamePlayer entry) {
+    return map(entry.getGameId(), entry.getUserId(), entry.getUsername());
+  }
+
+  public static Map<String, Object> mapPK(UUID gameId, String userId) {
+    Map<String, Object> map = new HashMap<>();
+    map.put(GAME_ID, gameId);
+    map.put(USER_ID, userId);
     return map;
   }
 
