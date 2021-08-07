@@ -3,6 +3,7 @@ package it.vitalegi.rpgboard.be.service;
 import io.reactivex.Single;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
+import it.vitalegi.rpgboard.be.data.GamePlayerRole;
 import it.vitalegi.rpgboard.be.repository.GameRepository;
 import it.vitalegi.rpgboard.be.roles.GameRole;
 import it.vitalegi.rpgboard.be.util.VertxUtil;
@@ -45,6 +46,13 @@ public class GameServiceLocal {
                     .addUserRole(conn, g.getId(), userId, GameRole.PLAYER)
                     .map(gpr -> g))
         .map(VertxUtil.debug("creation done"));
+  }
+
+  public Single<GamePlayerRole> joinGame(SqlConnection conn, String userId, UUID gameId) {
+    return Single.just(gameId)
+        .flatMap(g -> gamePlayerService.addGamePlayer(conn, gameId, userId))
+        .flatMap(g -> gamePlayerRoleServiceLocal.addUserRole(conn, gameId, userId, GameRole.PLAYER))
+        .map(VertxUtil.logEntry("user " + userId + " joined " + gameId));
   }
 
   public Single<Game> getGame(SqlConnection conn, UUID gameId) {

@@ -48,6 +48,7 @@ public class GameVerticle extends AbstractVerticle {
 
     eventBus.consumer("game.add", this::addGame);
     eventBus.consumer("game.get", this::getGame);
+    eventBus.consumer("game.join", this::joinGame);
     eventBus.consumer("game.getAll", this::getGames);
     eventBus.consumer("game.update", this::updateGame);
     eventBus.consumer("game.delete", this::deleteGame);
@@ -72,6 +73,12 @@ public class GameVerticle extends AbstractVerticle {
     JsonObserver observer = JsonObserver.init(msg, "getGame");
     UUID gameId = getUUID(msg.body().getString("gameId"));
     cx(conn -> gameService.getGame(conn, getUserId(msg), gameId).toMaybe()).subscribe(observer);
+  }
+
+  protected void joinGame(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "joinGame");
+    UUID gameId = getUUID(msg.body().getString("gameId"));
+    cx(conn -> gameService.joinGame(conn, getUserId(msg), gameId).toMaybe()).subscribe(observer);
   }
 
   protected void updateGame(Message<JsonObject> msg) {

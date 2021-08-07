@@ -1,7 +1,9 @@
 package it.vitalegi.rpgboard.be.security;
 
+import io.vertx.reactivex.ext.auth.User;
 import io.vertx.reactivex.ext.web.RoutingContext;
 import io.vertx.reactivex.ext.web.handler.AuthenticationHandler;
+import it.vitalegi.rpgboard.be.MainVerticle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +21,9 @@ public class FirebaseJWTAuthenticationHandler implements AuthenticationHandler {
   public void handle(RoutingContext ctx) {
     try {
       String token = getToken(ctx);
-      ctx.setUser(provider.getUser(token));
+      User user = provider.getUser(token);
+      ctx.setUser(user);
+      ctx.put(MainVerticle.UID, user.principal().getString(MainVerticle.UID));
       ctx.next();
     } catch (InvalidTokenException e) {
       ctx.fail(401, new IllegalStateException("Unauthorized request"));

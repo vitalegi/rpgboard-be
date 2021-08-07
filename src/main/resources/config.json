@@ -15,7 +15,8 @@
       "origin",
       "accept"
     ],
-    "allowCredentials": true
+    "allowCredentials": true,
+    "auth": "FIREBASE"
   },
   "database": {
     "sslMode": "REQUIRED"

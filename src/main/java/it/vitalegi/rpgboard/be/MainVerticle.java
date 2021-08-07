@@ -5,6 +5,7 @@ import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.bridge.PermittedOptions;
@@ -22,6 +23,7 @@ import io.vertx.reactivex.ext.web.handler.CorsHandler;
 import io.vertx.reactivex.ext.web.handler.SessionHandler;
 import io.vertx.reactivex.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.reactivex.ext.web.sstore.LocalSessionStore;
+import it.vitalegi.rpgboard.be.security.DummyAuthProvider;
 import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthProvider;
 import it.vitalegi.rpgboard.be.security.FirebaseJWTAuthenticationHandler;
 import org.slf4j.Logger;
@@ -30,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.util.stream.Collectors;
 
 public class MainVerticle extends AbstractVerticle {
+  public static final String UID = "uid";
   Logger log = LoggerFactory.getLogger(MainVerticle.class);
 
   @Override
@@ -48,7 +51,11 @@ public class MainVerticle extends AbstractVerticle {
               log.error("Failed to load props", error);
               throw new RuntimeException(error);
             })
-        .flatMapCompletable(this::rxStart);
+        .flatMapCompletable(this::rxStart)
+        .doOnError(
+            e -> {
+              log.error("Error", e);
+            });
   }
 
   public Completable rxStart(JsonObject config) {
@@ -79,16 +86,27 @@ public class MainVerticle extends AbstractVerticle {
     router.mountSubRouter("/eventbus", sockJsRouter);
 
     EventBus eventBus = vertx.eventBus();
+
+    String authMethod = config.getJsonObject("security").getString("auth");
+    if (authMethod.equals(DummyAuthProvider.METHOD_NAME)) {
+      log.info("DUMMY auth method");
+      router.route("/api/*").handler(new DummyAuthProvider());
+    } else if (authMethod.equals("FIREBASE")) {
+      log.info("FIREBASE auth method");
+      router.route("/api/*").blockingHandler(authHandler);
+    } else {
+      throw new IllegalArgumentException("Invalid auth method " + authMethod);
+    }
+
     router
         .post("/api/game")
         .handler(
             ctx -> {
-              JsonObject message = new JsonObject();
-              JsonObject body = ctx.getBodyAsJson();
-              message.put("name", body.getString("name"));
-              message.put("ownerId", body.getString("ownerId"));
-              message.put("open", body.getBoolean("open"));
-              eventBus.request("game.add", message, reply -> handleResponse(ctx, reply));
+              eventBus.request(
+                  "game.add",
+                  ctx.getBodyAsJson(),
+                  deliveryOptions(ctx),
+                  reply -> handleResponse(ctx, reply));
             });
 
     router
@@ -96,7 +114,8 @@ public class MainVerticle extends AbstractVerticle {
         .handler(
             ctx -> {
               JsonObject message = new JsonObject().put("gameId", ctx.pathParam("gameId"));
-              eventBus.request("game.get", message, reply -> handleResponse(ctx, reply));
+              eventBus.request(
+                  "game.get", message, deliveryOptions(ctx), reply -> handleResponse(ctx, reply));
             });
 
     router
@@ -104,7 +123,11 @@ public class MainVerticle extends AbstractVerticle {
         .handler(
             ctx -> {
               JsonObject message = new JsonObject().put("gameId", ctx.pathParam("gameId"));
-              eventBus.request("game.delete", message, reply -> handleResponse(ctx, reply));
+              eventBus.request(
+                  "game.delete",
+                  message,
+                  deliveryOptions(ctx),
+                  reply -> handleResponse(ctx, reply));
             });
 
     router
@@ -112,7 +135,11 @@ public class MainVerticle extends AbstractVerticle {
         .handler(
             ctx -> {
               JsonObject message = new JsonObject();
-              eventBus.request("game.getAll", message, reply -> handleResponse(ctx, reply));
+              eventBus.request(
+                  "game.getAll",
+                  message,
+                  deliveryOptions(ctx),
+                  reply -> handleResponse(ctx, reply));
             });
 
     log.info("Deployed routes");
@@ -206,5 +233,9 @@ public class MainVerticle extends AbstractVerticle {
               .put("description", reply.cause().getMessage());
       context.json(payload);
     }
+  }
+
+  private DeliveryOptions deliveryOptions(RoutingContext ctx) {
+    return new DeliveryOptions().addHeader(UID, ctx.get(UID));
   }
 }

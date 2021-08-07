@@ -9,6 +9,7 @@ import com.google.firebase.auth.FirebaseToken;
 import io.vertx.reactivex.ext.auth.User;
 import io.vertx.reactivex.ext.auth.authorization.Authorization;
 import io.vertx.reactivex.ext.auth.authorization.PermissionBasedAuthorization;
+import it.vitalegi.rpgboard.be.MainVerticle;
 import it.vitalegi.rpgboard.be.logging.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +50,7 @@ public class FirebaseJWTAuthProvider {
       FirebaseAuth instance = FirebaseAuth.getInstance();
       FirebaseToken auth = instance.verifyIdToken(token);
       User user = User.fromName(auth.getEmail());
-      user.principal().put("id", auth.getUid());
+      user.principal().put(MainVerticle.UID, auth.getUid());
       user.principal().put("mail", auth.getEmail());
       user.authorizations().add("firebaseJwt", getAuthorizations(auth));
       LogUtil.success("firebase.validate", start, auth.getUid(), auth.getEmail());

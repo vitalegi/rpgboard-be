@@ -3,6 +3,7 @@ package it.vitalegi.rpgboard.be.service;
 import io.reactivex.Single;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
+import it.vitalegi.rpgboard.be.data.GamePlayerRole;
 import it.vitalegi.rpgboard.be.roles.GameRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,10 @@ public class GameService {
   public Single<Game> getGame(SqlConnection conn, String userId, UUID gameId) {
     return checkRole(conn, userId, gameId, GameRole.PLAYER)
         .flatMap(r -> gameServiceLocal.getGame(conn, gameId));
+  }
+
+  public Single<GamePlayerRole> joinGame(SqlConnection conn, String userId, UUID gameId) {
+    return gameServiceLocal.joinGame(conn, userId, gameId);
   }
 
   public Single<Game> updateGame(SqlConnection conn, String userId, Game game) {
