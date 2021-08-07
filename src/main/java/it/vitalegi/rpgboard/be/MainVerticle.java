@@ -5,7 +5,6 @@ import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Handler;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
@@ -24,8 +23,10 @@ import io.vertx.reactivex.ext.web.handler.CorsHandler;
 import io.vertx.reactivex.ext.web.handler.SessionHandler;
 import io.vertx.reactivex.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.reactivex.ext.web.sstore.LocalSessionStore;
+import it.vitalegi.rpgboard.be.security.AuthProvider;
 import it.vitalegi.rpgboard.be.security.AuthProviderFactory;
 import it.vitalegi.rpgboard.be.security.FirebaseAuthProvider;
+import it.vitalegi.rpgboard.be.security.WebSocketBridgeListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,11 +71,12 @@ public class MainVerticle extends AbstractVerticle {
 
     FirebaseAuthProvider.init();
 
-    Handler<RoutingContext> authProvider = new AuthProviderFactory(config).getProvider();
+    AuthProvider authProvider = new AuthProviderFactory(config).getProvider();
 
     SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
-    Router sockJsRouter = sockJSHandler.bridge(getBridgeOptions());
-    router.route("/eventbus/*").blockingHandler(authProvider);
+    Router sockJsRouter =
+        sockJSHandler.bridge(getBridgeOptions(), new WebSocketBridgeListener(authProvider));
+    router.route("/eventbus/*"); // .blockingHandler(authProvider);
     router.mountSubRouter("/eventbus", sockJsRouter);
 
     EventBus eventBus = vertx.eventBus();
@@ -194,13 +196,13 @@ public class MainVerticle extends AbstractVerticle {
   private SockJSBridgeOptions getBridgeOptions() {
     return new SockJSBridgeOptions()
         .addOutboundPermitted(
-            new PermittedOptions()
-                .setAddressRegex("external\\.outgoing.*")
-                .setRequiredAuthority("REGISTERED_USER"))
+            new PermittedOptions().setAddressRegex("external\\.outgoing.*")
+            // .setRequiredAuthority("REGISTERED_USER")
+            )
         .addInboundPermitted(
-            new PermittedOptions()
-                .setAddressRegex("external\\.incoming.*")
-                .setRequiredAuthority("REGISTERED_USER"));
+            new PermittedOptions().setAddressRegex("external\\.incoming.*")
+            // .setRequiredAuthority("REGISTERED_USER")
+            );
   }
 
   private <T> void handleResponse(RoutingContext context, AsyncResult<Message<T>> reply) {

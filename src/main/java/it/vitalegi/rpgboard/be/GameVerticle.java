@@ -41,7 +41,7 @@ public class GameVerticle extends AbstractVerticle {
     gameService = beanContext.getBean(GameService.class);
 
     AuthProvider authProvider = new AuthProviderFactory(config()).getProvider();
-    eventBus.addInboundInterceptor(new WebSocketAuthValidator(vertx, authProvider));
+    //eventBus.addInboundInterceptor(new WebSocketAuthValidator(vertx, authProvider));
 
     eventBus.consumer("external.incoming.game.add", this::addGame);
     eventBus.consumer("external.incoming.game.getAll", this::getGames);

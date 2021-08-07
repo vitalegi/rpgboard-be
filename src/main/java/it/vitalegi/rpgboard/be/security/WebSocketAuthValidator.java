@@ -26,6 +26,7 @@ public class WebSocketAuthValidator implements Handler<DeliveryContext<Object>> 
       dc.next();
       return;
     }
+    log.info("> {}", dc.message().headers());
     dc.message().headers().set(MainVerticle.UID, "");
 
     if (dc.message().body() instanceof JsonObject) {

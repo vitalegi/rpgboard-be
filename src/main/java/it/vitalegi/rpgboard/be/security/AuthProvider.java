@@ -11,16 +11,6 @@ import org.slf4j.LoggerFactory;
 public abstract class AuthProvider implements AuthenticationHandler {
   static Logger log = LoggerFactory.getLogger(AuthProvider.class);
 
-  public abstract User getUser(String token);
-
-  protected String getToken(RoutingContext ctx) {
-    String header = ctx.request().getHeader("Authorization");
-    if (!StringUtil.isNullOrEmpty(header)) {
-      return header;
-    }
-    return ctx.request().getParam("jwt");
-  }
-
   @Override
   public io.vertx.ext.web.handler.AuthenticationHandler getDelegate() {
     return null;
@@ -51,4 +41,14 @@ public abstract class AuthProvider implements AuthenticationHandler {
 
   @Override
   public void postAuthentication(RoutingContext ctx) {}
+
+  public abstract User getUser(String token);
+
+  protected String getToken(RoutingContext ctx) {
+    String header = ctx.request().getHeader("Authorization");
+    if (!StringUtil.isNullOrEmpty(header)) {
+      return header;
+    }
+    return ctx.request().getParam("jwt");
+  }
 }
