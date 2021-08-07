@@ -5,7 +5,7 @@ import io.vertx.codegen.format.SnakeCase;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.annotations.Column;
 import io.vertx.sqlclient.templates.annotations.RowMapped;
-import it.vitalegi.rpgboard.be.util.PreparedStatementBuilder;
+import it.vitalegi.rpgboard.be.repository.querybuilder.pg.PreparedStatementFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,8 +19,8 @@ public class Asset {
   public static final String NAME = "name";
   public static final String SIZE = "size";
   public static final String CONTENT = "content";
-  public static final PreparedStatementBuilder BUILDER =
-      PreparedStatementBuilder.init()
+  public static final PreparedStatementFactory BUILDER =
+      PreparedStatementFactory.init()
           .tableName("RPG_Asset")
           .fields(ASSET_ID, GAME_ID, NAME, SIZE, CONTENT);
 

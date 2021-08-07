@@ -5,7 +5,7 @@ import io.vertx.codegen.format.SnakeCase;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.annotations.Column;
 import io.vertx.sqlclient.templates.annotations.RowMapped;
-import it.vitalegi.rpgboard.be.util.PreparedStatementBuilder;
+import it.vitalegi.rpgboard.be.repository.querybuilder.pg.PreparedStatementFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,9 +19,10 @@ public class Game {
   public static final String NAME = "name";
   public static final String OWNER_ID = "owner_id";
   public static final String IS_OPEN = "is_open";
-  public static final PreparedStatementBuilder BUILDER =
-      PreparedStatementBuilder.init()
+  public static final PreparedStatementFactory BUILDER =
+      PreparedStatementFactory.init()
           .tableName("RPG_Game")
+          .primaryKey(GAME_ID)
           .fields(GAME_ID, NAME, OWNER_ID, IS_OPEN);
 
   @Column(name = GAME_ID)
@@ -51,6 +52,12 @@ public class Game {
     map.put(NAME, game.getName());
     map.put(OWNER_ID, game.getOwnerId());
     map.put(IS_OPEN, game.getOpen());
+    return map;
+  }
+
+  public static Map<String, Object> mapPK(UUID gameId) {
+    Map<String, Object> map = new HashMap<>();
+    map.put(GAME_ID, gameId);
     return map;
   }
 

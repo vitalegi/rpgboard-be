@@ -5,7 +5,7 @@ import io.vertx.codegen.format.SnakeCase;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.annotations.Column;
 import io.vertx.sqlclient.templates.annotations.RowMapped;
-import it.vitalegi.rpgboard.be.util.PreparedStatementBuilder;
+import it.vitalegi.rpgboard.be.repository.querybuilder.pg.PreparedStatementFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,8 +18,8 @@ public class GamePlayerRole {
   public static final String GAME_ID = "game_id";
   public static final String USER_ID = "user_id";
   public static final String ROLE = "role";
-  public static final PreparedStatementBuilder BUILDER =
-      PreparedStatementBuilder.init()
+  public static final PreparedStatementFactory BUILDER =
+      PreparedStatementFactory.init()
           .tableName("RPG_GamePlayerRole")
           .fields(ENTRY_ID, GAME_ID, USER_ID, ROLE);
 

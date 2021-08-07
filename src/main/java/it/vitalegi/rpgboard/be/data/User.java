@@ -5,7 +5,7 @@ import io.vertx.codegen.format.SnakeCase;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.annotations.Column;
 import io.vertx.sqlclient.templates.annotations.RowMapped;
-import it.vitalegi.rpgboard.be.util.PreparedStatementBuilder;
+import it.vitalegi.rpgboard.be.repository.querybuilder.pg.PreparedStatementFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,8 +15,8 @@ import java.util.Map;
 public class User {
   public static final String USER_ID = "user_id";
   public static final String USERNAME = "username";
-  public static final PreparedStatementBuilder BUILDER =
-      PreparedStatementBuilder.init().tableName("RPG_User").fields(USER_ID, USERNAME);
+  public static final PreparedStatementFactory BUILDER =
+      PreparedStatementFactory.init().tableName("RPG_User").fields(USER_ID, USERNAME);
 
   @Column(name = USER_ID)
   String id;
