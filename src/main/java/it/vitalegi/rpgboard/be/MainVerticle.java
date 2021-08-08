@@ -7,12 +7,12 @@ import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Handler;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSBridgeOptions;
-import io.vertx.pgclient.SslMode;
 import io.vertx.reactivex.config.ConfigRetriever;
 import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.core.Vertx;
@@ -94,49 +94,11 @@ public class MainVerticle extends AbstractVerticle {
 
     router.route("/api/*").blockingHandler(authProvider);
 
-    router
-        .post("/api/game")
-        .handler(
-            ctx -> {
-              eventBus.request(
-                  "game.add",
-                  ctx.getBodyAsJson(),
-                  deliveryOptions(ctx),
-                  reply -> handleResponse(ctx, reply));
-            });
-
-    router
-        .get("/api/game/:gameId")
-        .handler(
-            ctx -> {
-              JsonObject message = new JsonObject().put("gameId", ctx.pathParam("gameId"));
-              eventBus.request(
-                  "game.get", message, deliveryOptions(ctx), reply -> handleResponse(ctx, reply));
-            });
-
-    router
-        .delete("/api/game/:gameId")
-        .handler(
-            ctx -> {
-              JsonObject message = new JsonObject().put("gameId", ctx.pathParam("gameId"));
-              eventBus.request(
-                  "game.delete",
-                  message,
-                  deliveryOptions(ctx),
-                  reply -> handleResponse(ctx, reply));
-            });
-
-    router
-        .get("/api/games")
-        .handler(
-            ctx -> {
-              JsonObject message = new JsonObject();
-              eventBus.request(
-                  "game.getAll",
-                  message,
-                  deliveryOptions(ctx),
-                  reply -> handleResponse(ctx, reply));
-            });
+    router.post("/api/game").handler(eventbusWithPayload("game.add"));
+    router.get("/api/game/:gameId").handler(this::getGame);
+    router.delete("/api/game/:gameId").handler(this::deleteGame);
+    router.get("/api/games").handler(eventbusWithPayload("game.getAll"));
+    router.post("/api/user/registration").handler(eventbusWithPayload("user.registration"));
 
     log.info("Deployed routes");
     for (Route route : router.getRoutes()) {
@@ -202,6 +164,31 @@ public class MainVerticle extends AbstractVerticle {
 
     corsHandler.allowCredentials(sec.getBoolean("allowCredentials"));
     return corsHandler;
+  }
+
+  protected Handler<RoutingContext> eventbusWithPayload(String address) {
+    return ctx ->
+        vertx
+            .eventBus()
+            .request(
+                address,
+                ctx.getBodyAsJson(),
+                deliveryOptions(ctx),
+                reply -> handleResponse(ctx, reply));
+  }
+
+  protected void getGame(RoutingContext ctx) {
+    JsonObject message = new JsonObject().put("gameId", ctx.pathParam("gameId"));
+    vertx
+        .eventBus()
+        .request("game.get", message, deliveryOptions(ctx), reply -> handleResponse(ctx, reply));
+  }
+
+  protected void deleteGame(RoutingContext ctx) {
+    JsonObject message = new JsonObject().put("gameId", ctx.pathParam("gameId"));
+    vertx
+        .eventBus()
+        .request("game.delete", message, deliveryOptions(ctx), reply -> handleResponse(ctx, reply));
   }
 
   private SockJSBridgeOptions getBridgeOptions() {

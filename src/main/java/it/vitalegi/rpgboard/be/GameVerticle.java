@@ -14,6 +14,7 @@ import io.vertx.reactivex.pgclient.PgPool;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
 import it.vitalegi.rpgboard.be.service.GameService;
+import it.vitalegi.rpgboard.be.service.UserServiceLocal;
 import it.vitalegi.rpgboard.be.util.JsonObserver;
 import it.vitalegi.rpgboard.be.util.VertxUtil;
 import org.slf4j.Logger;
@@ -25,6 +26,7 @@ import java.util.UUID;
 public class GameVerticle extends AbstractVerticle {
   static Logger log = LoggerFactory.getLogger(GameVerticle.class);
   protected GameService gameService;
+  protected UserServiceLocal userServiceLocal;
   protected PgPool client;
 
   @Override
@@ -39,6 +41,7 @@ public class GameVerticle extends AbstractVerticle {
     beanContext.registerSingleton(vertx);
 
     gameService = beanContext.getBean(GameService.class);
+    userServiceLocal = beanContext.getBean(UserServiceLocal.class);
     client = beanContext.getBean(PgPool.class);
 
     eventBus.consumer("external.incoming.game.add", this::addGame);
@@ -50,8 +53,21 @@ public class GameVerticle extends AbstractVerticle {
     eventBus.consumer("game.getAll", this::getGames);
     eventBus.consumer("game.update", this::updateGame);
     eventBus.consumer("game.delete", this::deleteGame);
+    eventBus.consumer("user.registration", this::registerUser);
     log.info("Start done");
     startPromise.complete();
+  }
+
+  protected void registerUser(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "registerUser");
+    JsonObject body = msg.body();
+    tx(conn -> {
+          String name = body.getString("name");
+          return Single.just(msg)
+              .flatMap(m -> userServiceLocal.register(conn, getUserId(msg), name))
+              .toMaybe();
+        })
+        .subscribe(observer);
   }
 
   protected void addGame(Message<JsonObject> msg) {
@@ -76,12 +92,12 @@ public class GameVerticle extends AbstractVerticle {
   protected void joinGame(Message<JsonObject> msg) {
     JsonObserver observer = JsonObserver.init(msg, "joinGame");
     UUID gameId = getUUID(msg.body().getString("gameId"));
-    cx(conn -> gameService.joinGame(conn, getUserId(msg), gameId).toMaybe()).subscribe(observer);
+    tx(conn -> gameService.joinGame(conn, getUserId(msg), gameId).toMaybe()).subscribe(observer);
   }
 
   protected void updateGame(Message<JsonObject> msg) {
     JsonObserver observer = JsonObserver.init(msg, "updateGame");
-    cx(conn ->
+    tx(conn ->
             Single.just(msg)
                 .map(this::mapGameParams)
                 .map(notNull(Game::getId, "id"))
@@ -97,7 +113,7 @@ public class GameVerticle extends AbstractVerticle {
     JsonObserver observer = JsonObserver.init(msg, "deleteGame");
     UUID gameId = getUUID(msg.body().getString("gameId"));
 
-    cx(conn -> gameService.deleteGame(conn, getUserId(msg), gameId).toMaybe()).subscribe(observer);
+    tx(conn -> gameService.deleteGame(conn, getUserId(msg), gameId).toMaybe()).subscribe(observer);
   }
 
   protected void getGames(Message<JsonObject> msg) {

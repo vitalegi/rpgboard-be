@@ -1,5 +1,7 @@
 package it.vitalegi.rpgboard.be.repository;
 
+import io.reactivex.Observable;
+import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
 import it.vitalegi.rpgboard.be.data.User;
 import it.vitalegi.rpgboard.be.reactivex.data.Mappers;
@@ -17,4 +19,12 @@ public class UserRepository extends AbstractSinglePkCrudRepository<User, String>
   public UserRepository() {
     super(Mappers.USER, User::map, User::mapPK, User.BUILDER);
   }
+
+  public Observable<User> add(SqlConnection connection, User entry) {
+    return updateSingle(
+            connection,
+            builder.insert().values().all().build(),
+            entryMapper.apply(entry));
+  }
+
 }

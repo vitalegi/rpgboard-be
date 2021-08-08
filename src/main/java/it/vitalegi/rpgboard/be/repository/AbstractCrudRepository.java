@@ -30,10 +30,11 @@ public abstract class AbstractCrudRepository<E> extends DatabaseProxy<E> {
 
   public Observable<E> add(SqlConnection connection, E entry) {
     return updateSingle(
-        connection,
-        builder.insert().values().allExcept(builder.primaryKeys()).build(),
-        entryMapper.apply(entry));
+            connection,
+            builder.insert().values().allExcept(builder.primaryKeys()).build(),
+            entryMapper.apply(entry));
   }
+
 
   public Observable<E> update(SqlConnection connection, E entry) {
     return updateSingle(
