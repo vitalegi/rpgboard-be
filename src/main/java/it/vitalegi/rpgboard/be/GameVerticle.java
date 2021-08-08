@@ -39,6 +39,7 @@ public class GameVerticle extends AbstractVerticle {
     beanContext.registerSingleton(vertx);
 
     gameService = beanContext.getBean(GameService.class);
+    client = beanContext.getBean(PgPool.class);
 
     eventBus.consumer("external.incoming.game.add", this::addGame);
     eventBus.consumer("external.incoming.game.getAll", this::getGames);
