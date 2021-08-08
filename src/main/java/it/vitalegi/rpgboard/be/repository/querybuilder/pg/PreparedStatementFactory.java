@@ -66,15 +66,15 @@ public class PreparedStatementFactory {
   }
 
   public InsertStatement insert() {
-    return new InsertStatement(this);
+    return new InsertStatement(alias(null));
   }
 
   public UpdateStatement update() {
-    return new UpdateStatement(this);
+    return new UpdateStatement(alias(null));
   }
 
   public DeleteStatement delete() {
-    return new DeleteStatement(this);
+    return new DeleteStatement(alias(null));
   }
 
   public SelectStatement select() {

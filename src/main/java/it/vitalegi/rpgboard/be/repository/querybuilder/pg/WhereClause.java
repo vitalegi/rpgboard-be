@@ -33,10 +33,18 @@ public class WhereClause<E extends AbstractPreparedStatement> extends AbstractPr
     return parent;
   }
 
-  protected String build() {
+  protected String build(boolean includeWhereKeyword) {
     if (clauses.isEmpty()) {
       return "";
     }
-    return " WHERE " + clauses.stream().collect(Collectors.joining(" AND "));
+    String statement = String.join(" AND ", clauses);
+    if (includeWhereKeyword) {
+      return " WHERE " + statement;
+    }
+    return statement;
+  }
+
+  protected String build() {
+    return build(true);
   }
 }
