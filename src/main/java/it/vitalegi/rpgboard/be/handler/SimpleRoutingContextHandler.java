@@ -1,2 +1,3 @@
-package it.vitalegi.rpgboard.be.handler;public class SimpleRoutingContextHandler {
-}
+package it.vitalegi.rpgboard.be.handler;
+
+public class SimpleRoutingContextHandler {}

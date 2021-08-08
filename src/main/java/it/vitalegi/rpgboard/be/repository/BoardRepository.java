@@ -1,7 +1,6 @@
 package it.vitalegi.rpgboard.be.repository;
 
 import it.vitalegi.rpgboard.be.data.Board;
-import it.vitalegi.rpgboard.be.data.Game;
 import it.vitalegi.rpgboard.be.reactivex.data.Mappers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

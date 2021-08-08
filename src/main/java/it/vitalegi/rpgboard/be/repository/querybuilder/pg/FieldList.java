@@ -1,5 +1,7 @@
 package it.vitalegi.rpgboard.be.repository.querybuilder.pg;
 
+import it.vitalegi.rpgboard.be.util.StringUtil;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -49,7 +51,7 @@ public class FieldList<E extends AbstractPreparedStatement> extends AbstractPrep
   }
 
   protected String buildSelect() {
-    return String.join(", ", selectedFields);
+    return String.join(", ", applyAlias(selectedFields, factory.alias));
   }
 
   protected String buildSet() {
@@ -62,5 +64,16 @@ public class FieldList<E extends AbstractPreparedStatement> extends AbstractPrep
 
   protected String buildInsertValues() {
     return selectedFields.stream().map(this::placeholder).collect(join(", ", "(", ")"));
+  }
+
+  protected List<String> applyAlias(List<String> fields, String alias) {
+    return fields.stream().map(field -> applyAlias(field, alias)).collect(Collectors.toList());
+  }
+
+  protected String applyAlias(String field, String alias) {
+    if (StringUtil.isNullOrEmpty(alias)) {
+      return field;
+    }
+    return alias + "." + field;
   }
 }

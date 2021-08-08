@@ -1,5 +1,7 @@
 package it.vitalegi.rpgboard.be.repository.querybuilder.pg;
 
+import it.vitalegi.rpgboard.be.util.StringUtil;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collector;
@@ -14,7 +16,10 @@ public abstract class AbstractPreparedStatement {
   }
 
   protected String equalToPlaceholder(String field) {
-    return field + "=#{" + field + "}";
+    if (StringUtil.isNullOrEmpty(factory.alias)) {
+      return field + "=#{" + field + "}";
+    }
+    return factory.alias + "." + field + "=#{" + field + "}";
   }
 
   protected String placeholder(String field) {
@@ -24,6 +29,7 @@ public abstract class AbstractPreparedStatement {
   protected List<String> copy(List<String> from) {
     return new ArrayList<>(from);
   }
+
   protected Collector<CharSequence, ?, String> join(
       String delimiter, String prefix, String suffix) {
     return Collectors.joining(delimiter, prefix, suffix);

@@ -12,8 +12,8 @@ import org.slf4j.LoggerFactory;
 public class WebSocketAuthValidator implements Handler<DeliveryContext<Object>> {
 
   Logger log = LoggerFactory.getLogger(WebSocketAuthValidator.class);
-  private Vertx vertx;
-  private AuthProvider authProvider;
+  private final Vertx vertx;
+  private final AuthProvider authProvider;
 
   public WebSocketAuthValidator(Vertx vertx, AuthProvider authProvider) {
     this.vertx = vertx;

@@ -37,6 +37,6 @@ public class WhereClause<E extends AbstractPreparedStatement> extends AbstractPr
     if (clauses.isEmpty()) {
       return "";
     }
-    return " WHERE " + clauses.stream().collect(Collectors.joining(" AND ", " ", " "));
+    return " WHERE " + clauses.stream().collect(Collectors.joining(" AND "));
   }
 }

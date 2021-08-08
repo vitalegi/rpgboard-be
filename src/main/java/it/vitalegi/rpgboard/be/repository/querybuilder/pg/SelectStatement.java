@@ -1,7 +1,6 @@
 package it.vitalegi.rpgboard.be.repository.querybuilder.pg;
 
-import java.util.ArrayList;
-import java.util.List;
+import it.vitalegi.rpgboard.be.util.StringUtil;
 
 public class SelectStatement extends AbstractPreparedStatement {
   FieldList<SelectStatement> selectedValues;
@@ -26,10 +25,17 @@ public class SelectStatement extends AbstractPreparedStatement {
     sb.append("SELECT ");
     sb.append(selectedValues.buildSelect());
     sb.append(" FROM ");
-    sb.append(factory.tableName);
+    sb.append(buildTableName());
     sb.append(whereClause.build());
     sb.append(";");
 
     return sb.toString();
+  }
+
+  protected String buildTableName() {
+    if (StringUtil.isNullOrEmpty(factory.alias)) {
+      return factory.tableName;
+    }
+    return factory.tableName + " as " + factory.alias;
   }
 }

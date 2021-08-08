@@ -1,8 +1,5 @@
 package it.vitalegi.rpgboard.be.repository.querybuilder.pg;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class UpdateStatement extends AbstractPreparedStatement {
   FieldList<UpdateStatement> setValues;
   FieldList<UpdateStatement> returning;

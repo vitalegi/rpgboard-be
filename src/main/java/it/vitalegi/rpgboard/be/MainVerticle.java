@@ -120,6 +120,7 @@ public class MainVerticle extends AbstractVerticle {
         10000,
         t -> {
           vertx.eventBus().publish("external.outgoing.games.123", "hello!");
+          vertx.eventBus().publish("external.outgoing.test", "hello!");
         });
     return out;
   }
