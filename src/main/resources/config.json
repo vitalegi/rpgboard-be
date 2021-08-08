@@ -20,6 +20,6 @@
     "auth": "FIREBASE"
   },
   "database": {
-    "sslMode": "REQUIRED"
+    "sslMode": "REQUIRE"
   }
 }
