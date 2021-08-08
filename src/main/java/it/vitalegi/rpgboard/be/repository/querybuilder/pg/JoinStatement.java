@@ -21,7 +21,8 @@ public class JoinStatement {
   public JoinStatement addEquals(String leftField, String rightField) {
     on.add(
         new Pair<>(
-            new TableField(left.factory, leftField), new TableField(right.factory, rightField)));
+            new TableField(left.factory.alias, leftField),
+            new TableField(right.factory.alias, rightField)));
     return this;
   }
 

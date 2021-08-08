@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -85,16 +86,35 @@ public class SelectStatementTest {
             .isEqualsToPlaceholder("pk1")
             .end();
     SelectStatement t2 = factory2.select("t2").values().allExcept("field3");
-    SelectStatement t3 = factory2.select("t3").values().allExcept("field4").where().allEqualToPlaceholder().end();
+    SelectStatement t3 =
+        factory2.select("t3").values().allExcept("field4").where().allEqualToPlaceholder().end();
     t1.join(new JoinStatement(t1, t2).addEquals("pk1", "pk3"));
     t1.join(new JoinStatement(t2, t3).addEquals("pk3", "pk3").addEquals("pk3", "pk4"));
 
     assertEquals(
-            "SELECT t1.pk1, t1.pk2, t2.pk3, t2.pk4, t2.field4, t3.pk3, t3.pk4, t3.field3 " +
-                    "FROM table1 as t1 " +
-                    "JOIN table2 as t2 ON t1.pk1=t2.pk3 " +
-                    "JOIN table2 as t3 ON t2.pk3=t3.pk3 AND t2.pk3=t3.pk4 " +
-                    "WHERE t1.pk1=#{pk1} AND t3.pk3=#{pk3} AND t3.pk4=#{pk4} AND t3.field3=#{field3} AND t3.field4=#{field4};",
+        "SELECT t1.pk1, t1.pk2, t2.pk3, t2.pk4, t2.field4, t3.pk3, t3.pk4, t3.field3 "
+            + "FROM table1 as t1 "
+            + "JOIN table2 as t2 ON t1.pk1=t2.pk3 "
+            + "JOIN table2 as t3 ON t2.pk3=t3.pk3 AND t2.pk3=t3.pk4 "
+            + "WHERE t1.pk1=#{pk1} AND t3.pk3=#{pk3} AND t3.pk4=#{pk4} AND t3.field3=#{field3} AND t3.field4=#{field4};",
+        t1.build());
+  }
+
+  @Test
+  void twoTableJoinGroupBy() {
+
+    SelectStatement t1 = factory1.select("t1").values().exact(Collections.singletonList("pk1"));
+    SelectStatement t2 = factory2.select("t2").values().exact(Collections.singletonList("pk4"));
+    t1.join(new JoinStatement(t1, t2).addEquals("pk1", "pk3"));
+    t1.groupBy(
+        new GroupByStatement()
+            .add(new GroupByTableField("t1", "pk1"))
+            .add(new GroupByTableField("t2", "pk4")));
+
+    assertEquals(
+        "SELECT t1.pk1, t2.pk4 "
+            + "FROM table1 as t1 JOIN table2 as t2 ON t1.pk1=t2.pk3 "
+            + "GROUP BY t1.pk1, t2.pk4;",
         t1.build());
   }
 }

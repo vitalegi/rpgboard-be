@@ -2,18 +2,19 @@ package it.vitalegi.rpgboard.be.repository.querybuilder.pg;
 
 import it.vitalegi.rpgboard.be.util.StringUtil;
 
-public class TableField extends AbstractPreparedStatement {
+public class TableField {
+  String alias;
   String field;
 
-  public TableField(PreparedStatementFactory factory, String field) {
-    super(factory);
+  public TableField(String alias, String field) {
+    this.alias = alias;
     this.field = field;
   }
 
   public String build() {
-    if (StringUtil.isNullOrEmpty(factory.alias)) {
+    if (StringUtil.isNullOrEmpty(alias)) {
       return field;
     }
-    return factory.alias + "." + field;
+    return alias + "." + field;
   }
 }

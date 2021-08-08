@@ -14,12 +14,14 @@ public class SelectStatement extends AbstractPreparedStatement {
   FieldList<SelectStatement> selectedValues;
   WhereClause<SelectStatement> whereClause;
   List<JoinStatement> joinStatements;
+  GroupByStatement groupBy;
 
   public SelectStatement(PreparedStatementFactory factory) {
     super(factory);
     selectedValues = FieldList.allFields(factory, this);
     whereClause = new WhereClause<SelectStatement>(factory, this);
     joinStatements = new ArrayList<>();
+    groupBy = new GroupByStatement();
   }
 
   public FieldList<SelectStatement> values() {
@@ -28,6 +30,11 @@ public class SelectStatement extends AbstractPreparedStatement {
 
   public WhereClause<SelectStatement> where() {
     return whereClause;
+  }
+
+  public SelectStatement groupBy(GroupByStatement groupBy) {
+    this.groupBy = groupBy;
+    return this;
   }
 
   public SelectStatement join(JoinStatement joinStatement) {
@@ -42,6 +49,7 @@ public class SelectStatement extends AbstractPreparedStatement {
     sb.append(" FROM ");
     sb.append(buildTableNames());
     sb.append(buildWhereClause());
+    sb.append(buildGroupBy());
     sb.append(";");
 
     return sb.toString();
@@ -95,5 +103,13 @@ public class SelectStatement extends AbstractPreparedStatement {
       return factory.tableName;
     }
     return factory.tableName + " as " + factory.alias;
+  }
+
+  protected String buildGroupBy() {
+    String result = groupBy.build();
+    if (StringUtil.isNotNullOrEmpty(result)) {
+      return " "+result;
+    }
+    return "";
   }
 }
