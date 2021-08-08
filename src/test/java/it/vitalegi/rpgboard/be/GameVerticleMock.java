@@ -2,12 +2,14 @@ package it.vitalegi.rpgboard.be;
 
 import io.reactivex.Maybe;
 import io.reactivex.functions.Function;
+import io.vertx.core.json.JsonObject;
+import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.pgclient.PgPool;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 
 public class GameVerticleMock extends GameVerticle {
   @Override
-  protected PgPool getClient() {
+  protected PgPool getClient(Vertx vertx, JsonObject config) {
     return null;
   }
 

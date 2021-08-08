@@ -6,22 +6,20 @@ import io.reactivex.Single;
 import io.reactivex.functions.Function;
 import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
-import io.vertx.pgclient.SslMode;
 import io.vertx.reactivex.core.AbstractVerticle;
+import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.pgclient.PgPool;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
-import it.vitalegi.rpgboard.be.security.AuthProvider;
-import it.vitalegi.rpgboard.be.security.AuthProviderFactory;
-import it.vitalegi.rpgboard.be.security.WebSocketAuthValidator;
 import it.vitalegi.rpgboard.be.service.GameService;
 import it.vitalegi.rpgboard.be.util.JsonObserver;
 import it.vitalegi.rpgboard.be.util.VertxUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Singleton;
 import java.util.UUID;
 
 public class GameVerticle extends AbstractVerticle {
@@ -37,11 +35,10 @@ public class GameVerticle extends AbstractVerticle {
         e -> log.error("Unhandled exception {}: {}", e.getClass().getName(), e.getMessage(), e));
 
     BeanContext beanContext = BeanContext.run();
-    client = getClient();
-    gameService = beanContext.getBean(GameService.class);
+    beanContext.registerSingleton(config());
+    beanContext.registerSingleton(vertx);
 
-    AuthProvider authProvider = new AuthProviderFactory(config()).getProvider();
-    //eventBus.addInboundInterceptor(new WebSocketAuthValidator(vertx, authProvider));
+    gameService = beanContext.getBean(GameService.class);
 
     eventBus.consumer("external.incoming.game.add", this::addGame);
     eventBus.consumer("external.incoming.game.getAll", this::getGames);
@@ -135,9 +132,9 @@ public class GameVerticle extends AbstractVerticle {
     return game;
   }
 
-  protected PgPool getClient() {
-    SslMode sslMode = SslMode.valueOf(config().getJsonObject("database").getString("sslMode"));
-    return VertxUtil.pool(vertx, sslMode);
+  @Singleton
+  protected PgPool getClient(Vertx vertx, JsonObject config) {
+    return VertxUtil.pool(vertx, config);
   }
 
   protected UUID getUUID(String str) {

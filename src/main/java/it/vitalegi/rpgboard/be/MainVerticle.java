@@ -1,6 +1,7 @@
 package it.vitalegi.rpgboard.be;
 
 import io.micronaut.context.BeanContext;
+import io.micronaut.context.annotation.Factory;
 import io.reactivex.Completable;
 import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
@@ -14,6 +15,7 @@ import io.vertx.ext.web.handler.sockjs.SockJSBridgeOptions;
 import io.vertx.pgclient.SslMode;
 import io.vertx.reactivex.config.ConfigRetriever;
 import io.vertx.reactivex.core.AbstractVerticle;
+import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.core.http.HttpServerResponse;
@@ -27,16 +29,16 @@ import io.vertx.reactivex.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.reactivex.ext.web.sstore.LocalSessionStore;
 import io.vertx.reactivex.pgclient.PgPool;
 import it.vitalegi.rpgboard.be.security.AuthProvider;
-import it.vitalegi.rpgboard.be.security.AuthProviderFactory;
 import it.vitalegi.rpgboard.be.security.FirebaseAuthProvider;
 import it.vitalegi.rpgboard.be.security.WebSocketBridgeListener;
-import it.vitalegi.rpgboard.be.service.GamePlayerRoleServiceLocal;
 import it.vitalegi.rpgboard.be.util.VertxUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Singleton;
 import java.util.stream.Collectors;
 
+@Factory
 public class MainVerticle extends AbstractVerticle {
   public static final String UID = "uid";
   Logger log = LoggerFactory.getLogger(MainVerticle.class);
@@ -68,6 +70,9 @@ public class MainVerticle extends AbstractVerticle {
     log.info("Setup properties done");
     vertx.deployVerticle(new GameVerticle(), new DeploymentOptions().setConfig(config));
     BeanContext beanContext = BeanContext.run();
+    beanContext.registerSingleton(config);
+    beanContext.registerSingleton(vertx);
+
     Router router = Router.router(vertx);
     router
         .route()
@@ -77,11 +82,9 @@ public class MainVerticle extends AbstractVerticle {
 
     FirebaseAuthProvider.init();
 
-    AuthProvider authProvider = new AuthProviderFactory(config).getProvider();
+    AuthProvider authProvider = beanContext.getBean(AuthProvider.class);
+    WebSocketBridgeListener wsBridgeListener = beanContext.getBean(WebSocketBridgeListener.class);
 
-    WebSocketBridgeListener wsBridgeListener =
-        new WebSocketBridgeListener(
-            authProvider, beanContext.getBean(GamePlayerRoleServiceLocal.class), getClient(config));
     SockJSHandler sockJSHandler = SockJSHandler.create(vertx);
     Router sockJsRouter = sockJSHandler.bridge(getBridgeOptions(), wsBridgeListener);
     router.route("/eventbus/*");
@@ -228,9 +231,9 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
-  protected PgPool getClient(JsonObject config) {
-    SslMode sslMode = SslMode.valueOf(config.getJsonObject("database").getString("sslMode"));
-    return VertxUtil.pool(vertx, sslMode);
+  @Singleton
+  protected PgPool getClient(Vertx vertx, JsonObject config) {
+    return VertxUtil.pool(vertx, config);
   }
 
   private DeliveryOptions deliveryOptions(RoutingContext ctx) {

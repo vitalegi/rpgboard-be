@@ -13,25 +13,19 @@ import it.vitalegi.rpgboard.be.service.GamePlayerRoleServiceLocal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 
+@Singleton
 public class WebSocketBridgeListener implements Handler<BridgeEvent> {
   Logger log = LoggerFactory.getLogger(this.getClass());
-  AuthProvider authProvider;
-  GamePlayerRoleServiceLocal gamePlayerRoleServiceLocal;
-  PgPool pgPool;
-
-  public WebSocketBridgeListener(
-      AuthProvider authProvider,
-      GamePlayerRoleServiceLocal gamePlayerRoleServiceLocal,
-      PgPool pgPool) {
-    this.authProvider = authProvider;
-    this.gamePlayerRoleServiceLocal = gamePlayerRoleServiceLocal;
-    this.pgPool = pgPool;
-  }
+  @Inject AuthProvider authProvider;
+  @Inject GamePlayerRoleServiceLocal gamePlayerRoleServiceLocal;
+  @Inject PgPool pgPool;
 
   @Override
   public void handle(BridgeEvent event) {

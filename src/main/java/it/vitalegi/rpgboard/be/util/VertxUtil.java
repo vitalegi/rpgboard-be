@@ -58,7 +58,8 @@ public class VertxUtil {
     }
   }
 
-  public static PgPool pool(Vertx vertx, SslMode sslMode) {
+  public static PgPool pool(Vertx vertx, JsonObject config) {
+    SslMode sslMode = SslMode.valueOf(config.getJsonObject("database").getString("sslMode"));
     PgConnectOptions connectOptions = PgConnectOptions.fromUri(System.getenv("DATABASE_URL"));
     connectOptions.setSslMode(sslMode);
     connectOptions.setTrustAll(true);
