@@ -33,7 +33,7 @@ public class GameVerticleTest {
   void addGameShouldCallServiceAndComplete(Vertx vertx, VertxTestContext testContext) {
     GameService service = mock(GameService.class);
     gameVerticle.gameService = service;
-    when(service.addGame(any(), any(), any(), any())).thenReturn(Single.just(new Game()));
+    when(service.addGame(any(), any(), any(), any(), any())).thenReturn(Single.just(new Game()));
 
     vertx
         .eventBus()
@@ -43,7 +43,7 @@ public class GameVerticleTest {
             msg -> {
               testContext.verify(
                   () -> {
-                    verify(service, times(1)).addGame(any(), any(), any(), any());
+                    verify(service, times(1)).addGame(any(), any(), any(), any(), any());
                     testContext.completeNow();
                   });
             })

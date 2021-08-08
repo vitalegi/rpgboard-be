@@ -75,9 +75,10 @@ public class GameVerticle extends AbstractVerticle {
     JsonObject body = msg.body();
     tx(conn -> {
           String name = body.getString("name");
+      String type = body.getString("type");
           Boolean open = body.getBoolean("open");
           return Single.just(msg)
-              .flatMap(m -> gameService.addGame(conn, getUserId(msg), name, open))
+              .flatMap(m -> gameService.addGame(conn, getUserId(msg), name, type, open))
               .toMaybe();
         })
         .subscribe(observer);

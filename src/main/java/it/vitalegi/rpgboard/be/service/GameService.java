@@ -20,8 +20,8 @@ public class GameService {
 
   Logger log = LoggerFactory.getLogger(GameService.class);
 
-  public Single<Game> addGame(SqlConnection conn, String userId, String name, Boolean open) {
-    return gameServiceLocal.addGame(conn, userId, name, open);
+  public Single<Game> addGame(SqlConnection conn, String userId, String name, String type, Boolean open) {
+    return gameServiceLocal.addGame(conn, userId, name, type, open);
   }
 
   public Single<Game> getGame(SqlConnection conn, String userId, UUID gameId) {

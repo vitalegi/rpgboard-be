@@ -19,11 +19,12 @@ public class Game {
   public static final String NAME = "name";
   public static final String OWNER_ID = "owner_id";
   public static final String IS_OPEN = "is_open";
+  public static final String TYPE = "type";
   public static final PreparedStatementFactory BUILDER =
       PreparedStatementFactory.init()
           .tableName("RPG_Game")
           .primaryKey(GAME_ID)
-          .fields(GAME_ID, NAME, OWNER_ID, IS_OPEN);
+          .fields(GAME_ID, NAME, OWNER_ID, IS_OPEN, TYPE);
 
   @Column(name = GAME_ID)
   UUID id;
@@ -34,20 +35,26 @@ public class Game {
   @Column(name = OWNER_ID)
   String ownerId;
 
+  @Column(name = TYPE)
+  String type;
+
   @Column(name = IS_OPEN)
   Boolean open;
 
-  public static Map<String, Object> map(UUID id, String name, String ownerId, Boolean open) {
+  public static Map<String, Object> map(
+      UUID id, String name, String ownerId, Boolean open, String type) {
     Map<String, Object> map = new HashMap<>();
     map.put(GAME_ID, id);
     map.put(NAME, name);
     map.put(OWNER_ID, ownerId);
     map.put(IS_OPEN, open);
+    map.put(TYPE, type);
     return map;
   }
 
   public static Map<String, Object> map(Game entry) {
-    return map(entry.getId(), entry.getName(), entry.getOwnerId(), entry.getOpen());
+    return map(
+        entry.getId(), entry.getName(), entry.getOwnerId(), entry.getOpen(), entry.getType());
   }
 
   public static Map<String, Object> mapPK(UUID gameId) {
@@ -94,6 +101,14 @@ public class Game {
     return json;
   }
 
+  public String getType() {
+    return type;
+  }
+
+  public void setType(String type) {
+    this.type = type;
+  }
+
   @Override
   public String toString() {
     return "Game{"
@@ -102,8 +117,12 @@ public class Game {
         + ", name='"
         + name
         + '\''
-        + ", ownerId="
+        + ", ownerId='"
         + ownerId
+        + '\''
+        + ", type='"
+        + type
+        + '\''
         + ", open="
         + open
         + '}';

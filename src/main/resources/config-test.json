@@ -3,7 +3,7 @@
     "cors": [
       "http://localhost:8080"
     ],
-    "auth": "DUMMY"
+    "auth": "FIREBASE"
   },
   "database": {
     "sslMode": "ALLOW"

@@ -23,13 +23,16 @@ public class GameServiceLocal {
 
   Logger log = LoggerFactory.getLogger(GameServiceLocal.class);
 
-  public Single<Game> addGame(SqlConnection conn, String userId, String name, Boolean open) {
+  public Single<Game> addGame(
+      SqlConnection conn, String userId, String name, String type, Boolean open) {
     notNull(userId, "userId null");
-    notNull(name, "game name null");
+    notNull(name, "name null");
+    notNull(type, "type null");
     notNull(open, "open null");
     Game game = new Game();
     game.setOpen(open);
     game.setName(name);
+    game.setType(type);
     game.setOwnerId(userId);
     return Single.just(game)
         .flatMap(g -> gameRepository.add(conn, g).singleOrError())
