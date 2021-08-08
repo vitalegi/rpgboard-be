@@ -21,6 +21,7 @@ public class GamePlayer {
   public static final PreparedStatementFactory BUILDER =
       PreparedStatementFactory.init()
           .tableName("RPG_GamePlayer")
+          .primaryKeys(Arrays.asList(GAME_ID, USER_ID))
           .fields(GAME_ID, USER_ID, USERNAME);
 
   @Column(name = GAME_ID)

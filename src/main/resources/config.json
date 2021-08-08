@@ -3,6 +3,9 @@
     "allowedMethods": [
       "GET",
       "POST",
+      "DELETE",
+      "PUT",
+      "PATCH",
       "OPTIONS"
     ],
     "allowedHeaders": [

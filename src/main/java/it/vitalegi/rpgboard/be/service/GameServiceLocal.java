@@ -59,17 +59,15 @@ public class GameServiceLocal {
   }
 
   public Single<Game> getGame(SqlConnection conn, UUID gameId) {
-    log.info("getGame {}", gameId);
     return Single.just(gameId).flatMap(id -> gameRepository.getById(conn, gameId).singleOrError());
   }
 
   public Single<Game> updateGame(SqlConnection conn, Game game) {
-    log.info("updateGame");
     return Single.just(game).flatMap(g -> gameRepository.update(conn, g).singleOrError());
   }
 
-  public Single<Game> deleteGame(SqlConnection conn, UUID gameId) {
-    log.info("deleteGame");
+  public Single<Game> deleteGame(SqlConnection conn, String userId, UUID gameId) {
+    log.info("deleteGame gameId={} userId={}", gameId, userId);
     return gameRepository.delete(conn, gameId).singleOrError();
   }
 

@@ -20,7 +20,8 @@ public class GameService {
 
   Logger log = LoggerFactory.getLogger(GameService.class);
 
-  public Single<Game> addGame(SqlConnection conn, String userId, String name, String type, Boolean open) {
+  public Single<Game> addGame(
+      SqlConnection conn, String userId, String name, String type, Boolean open) {
     return gameServiceLocal.addGame(conn, userId, name, type, open);
   }
 
@@ -40,7 +41,7 @@ public class GameService {
 
   public Single<Game> deleteGame(SqlConnection conn, String userId, UUID gameId) {
     return checkRole(conn, userId, gameId, GameRole.MASTER)
-        .flatMap(r -> gameServiceLocal.deleteGame(conn, gameId));
+        .flatMap(r -> gameServiceLocal.deleteGame(conn, userId, gameId));
   }
 
   public Single<List<Game>> getGames(SqlConnection conn, String userId) {
