@@ -1,0 +1,108 @@
+sequenceDiagram
+    participant A as User
+    participant API
+    participant EventBus
+
+    note over A,API: User gets all games available
+    A->>API: getGames()
+    API-->>A: <games>
+        
+    note over A,API: User enters a game
+    A->>API: POST /api/<game>/enter
+    activate API
+    API->>EventBus: publish game.<game>.players(ADD, player)
+    API-->>A: ack
+    deactivate API
+
+    A->>EventBus: register game.<game>.players
+    A->>EventBus: register game.<game>.boards
+    A->>EventBus: register game.<game>.board.<board>.elements
+    A->>EventBus: register game.<game>.assets
+    A->>EventBus: register game.<game>.characterSheets
+    A->>EventBus: register game.<game>.chat
+
+    note over A,API: User sync
+    A->>API: GET /api/<game>/players
+    activate API
+    API-->>A: players
+    deactivate API
+
+    A->>API: GET /api/<game>/boards
+    activate API
+    API-->>A: boards
+    deactivate API
+
+    A->>API: GET /api/<game>/board/<board>/elements
+    activate API
+    API-->>A: board elements
+    deactivate API
+
+    A->>API: GET /api/<game>/asset/<asset>
+    activate API
+    API-->>A: assets
+    deactivate API
+
+    A->>API: GET /api/<game>/dd5e/characterSheet/<sheetId>
+    activate API
+    API-->>A: character sheet
+    deactivate API
+
+    A->>API: GET /api/<game>/chat
+    activate API
+    API-->>A: chat history
+    deactivate API
+
+    note over A,API: User creates board
+    A->>API: POST /api/<game>/board
+    activate API
+    API->>EventBus: publish game.<game>.boards(ADD, board)
+    API-->>A: ack
+    deactivate API
+
+    note over A,API: User selects active board
+    A->>API: POST /api/<game>/board/<board>/active
+    activate API
+    API->>EventBus: publish game.<game>.boards(ACTIVE, boardId)
+    API-->>A: ack
+    deactivate API
+
+    note over A,API: User changes board
+    A->>API: POST /api/<game>/board/<board>
+    activate API
+    API->>EventBus: publish game.<game>.boards(UPDATE, board)
+    API-->>A: ack
+    deactivate API
+
+    note over A,API: User deletes board
+    A->>API: DELETE /api/<game>/board/<board>
+    activate API
+    API->>EventBus: publish game.<game>.boards(DELETE, board)
+    API-->>A: ack
+    deactivate API
+
+    note over A,API: User create board element
+    A->>API: POST /api/<game>/board/<board>
+    activate API
+    API->>EventBus: publish game.<game>.board.<board>.elements(ADD, boardElement)
+    API-->>A: ack
+    deactivate API
+
+    note over A,API: User update board element
+    A->>API: POST /api/<game>/board/<board>/<element>
+    activate API
+    API->>EventBus: publish game.<game>.board.<board>.elements(UPDATE, boardElement)
+    API-->>A: ack
+    deactivate API
+
+    note over A,API: User delete board element
+    A->>API: DELETE /api/<game>/board/<board>/<element>
+    activate API
+    API->>EventBus: publish game.<game>.board.<board>.elements(DELETE, boardElement)
+    API-->>A: ack
+    deactivate API
+
+    note over A,API: User creates/deletes assets
+    A->>API: /api/<game>/asset
+    activate API
+    API-->>A: <asset>
+    deactivate API
