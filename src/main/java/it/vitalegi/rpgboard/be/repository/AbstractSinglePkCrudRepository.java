@@ -3,7 +3,12 @@ package it.vitalegi.rpgboard.be.repository;
 import io.reactivex.Observable;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import io.vertx.reactivex.sqlclient.templates.RowMapper;
-import it.vitalegi.rpgboard.be.repository.querybuilder.pg.PreparedStatementFactory;
+import it.vitalegi.rpgboard.be.repository.querybuilder.pg.DeleteFactory;
+import it.vitalegi.rpgboard.be.repository.querybuilder.pg.SelectFactory;
+import it.vitalegi.rpgboard.be.repository.querybuilder.pg.Table;
+import it.vitalegi.rpgboard.be.repository.querybuilder.pg.fields.FieldsPicker;
+import it.vitalegi.rpgboard.be.repository.querybuilder.pg.where.EqualsPlaceholder;
+import it.vitalegi.rpgboard.be.repository.querybuilder.pg.where.WhereClause;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,22 +25,28 @@ public abstract class AbstractSinglePkCrudRepository<E, P> extends AbstractCrudR
       RowMapper<E> rowMapper,
       Function<E, Map<String, Object>> entryMapper,
       Function<P, Map<String, Object>> primaryKeysMapper,
-      PreparedStatementFactory builder) {
-    super(rowMapper, entryMapper, builder);
+      Table table) {
+    super(rowMapper, entryMapper, table);
     this.primaryKeysMapper = primaryKeysMapper;
   }
 
   public Observable<E> delete(SqlConnection connection, P pk) {
     return updateSingle(
         connection,
-        builder.delete().where().areEqualToPlaceholder(builder.primaryKeys()).end().build(),
+        DeleteFactory.init(table)
+            .where(
+                WhereClause.and(new EqualsPlaceholder(FieldsPicker.exact(table.getPrimaryKeys()))))
+            .build(),
         primaryKeysMapper.apply(pk));
   }
 
   public Observable<E> getById(SqlConnection connection, P pk) {
     return querySingle(
         connection,
-        builder.select().where().areEqualToPlaceholder(builder.primaryKeys()).end().build(),
+        SelectFactory.init(table)
+            .where(
+                WhereClause.and(new EqualsPlaceholder(FieldsPicker.exact(table.getPrimaryKeys()))))
+            .build(),
         primaryKeysMapper.apply(pk));
   }
 }

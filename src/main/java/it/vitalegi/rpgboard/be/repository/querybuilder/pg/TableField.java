@@ -3,18 +3,18 @@ package it.vitalegi.rpgboard.be.repository.querybuilder.pg;
 import it.vitalegi.rpgboard.be.util.StringUtil;
 
 public class TableField {
-  String alias;
+  TableInstance tableInstance;
   String field;
 
-  public TableField(String alias, String field) {
-    this.alias = alias;
+  public TableField(TableInstance tableInstance, String field) {
+    this.tableInstance = tableInstance;
     this.field = field;
   }
 
   public String build() {
-    if (StringUtil.isNullOrEmpty(alias)) {
+    if (StringUtil.isNullOrEmpty(tableInstance.getAlias())) {
       return field;
     }
-    return alias + "." + field;
+    return tableInstance.getAlias() + "." + field;
   }
 }
