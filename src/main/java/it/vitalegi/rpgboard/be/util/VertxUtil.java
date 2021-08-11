@@ -62,7 +62,7 @@ public class VertxUtil {
     String mode = config.getJsonObject("database").getString("sslMode");
     SslMode sslMode = SslMode.of(mode);
     log.info("Use SSL mode: {}", sslMode);
-    PgConnectOptions connectOptions = PgConnectOptions.fromUri(System.getenv("DATABASE_URL"));
+    PgConnectOptions connectOptions = PgConnectOptions.fromUri(config.getString("DATABASE_URL"));
     connectOptions.setSslMode(sslMode);
     connectOptions.setTrustAll(true);
 

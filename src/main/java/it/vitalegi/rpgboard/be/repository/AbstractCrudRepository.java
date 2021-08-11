@@ -96,16 +96,16 @@ public abstract class AbstractCrudRepository<E> extends DatabaseProxy<E> {
   }
 
   protected Single<E> getUniqueByField(
-          SqlConnection connection, String fieldName, Object fieldValue) {
+      SqlConnection connection, String fieldName, Object fieldValue) {
     Map<String, Object> in = new HashMap<>();
     in.put(fieldName, fieldValue);
     return querySingle(
             connection,
             SelectFactory.init(table)
-                    .where(WhereClause.and(new EqualsPlaceholder(FieldsPicker.exact(fieldName))))
-                    .build(),
+                .where(WhereClause.and(new EqualsPlaceholder(FieldsPicker.exact(fieldName))))
+                .build(),
             in)
-            .singleOrError();
+        .singleOrError();
   }
 
   public Single<List<E>> getAll(SqlConnection connection) {

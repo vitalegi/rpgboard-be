@@ -7,6 +7,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import io.reactivex.Single;
+import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.ext.auth.User;
 import io.vertx.reactivex.ext.auth.authorization.Authorization;
 import io.vertx.reactivex.ext.auth.authorization.PermissionBasedAuthorization;
@@ -29,9 +30,14 @@ public class FirebaseAuthProvider extends AuthProvider {
   public static final String METHOD_NAME = "FIREBASE";
   static Logger log = LoggerFactory.getLogger(FirebaseAuthProvider.class);
 
-  public static void init() {
+  public static void init(JsonObject config) {
     log.info("Init");
-    String firebasePrivateKey = System.getenv("FIREBASE_PRIVATE_KEY");
+
+    if (!config.getJsonObject("security").getString("auth", "").equals(METHOD_NAME)) {
+      log.info("Auth method is NOT firebase, skip init");
+      return;
+    }
+    String firebasePrivateKey = config.getString("FIREBASE_PRIVATE_KEY");
     InputStream firebase =
         new ByteArrayInputStream(firebasePrivateKey.getBytes(StandardCharsets.UTF_8));
 

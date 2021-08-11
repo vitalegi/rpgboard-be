@@ -1,7 +1,6 @@
 package it.vitalegi.rpgboard.be.repository.querybuilder.pg;
 
 import it.vitalegi.rpgboard.be.util.StringUtil;
-import javafx.scene.control.Tab;
 
 import java.util.List;
 import java.util.stream.Collectors;

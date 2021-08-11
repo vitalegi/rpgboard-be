@@ -16,6 +16,7 @@ public class InsertValuesClause implements Renderer {
   public InsertValuesClause(List<InsertRenderer> renderers) {
     this.renderers = renderers;
   }
+
   public InsertValuesClause() {
     this(new ArrayList<>());
   }

@@ -14,10 +14,9 @@ public class Mappers {
       it.vitalegi.rpgboard.be.reactivex.data.AssetRowMapper.newInstance(
           it.vitalegi.rpgboard.be.data.AssetRowMapper.INSTANCE);
 
-  public static final it.vitalegi.rpgboard.be.reactivex.data.GameItemRowMapper
-      GAME_ITEM =
-          it.vitalegi.rpgboard.be.reactivex.data.GameItemRowMapper.newInstance(
-              it.vitalegi.rpgboard.be.data.GameItemRowMapper.INSTANCE);
+  public static final it.vitalegi.rpgboard.be.reactivex.data.GameItemRowMapper GAME_ITEM =
+      it.vitalegi.rpgboard.be.reactivex.data.GameItemRowMapper.newInstance(
+          it.vitalegi.rpgboard.be.data.GameItemRowMapper.INSTANCE);
 
   public static final it.vitalegi.rpgboard.be.reactivex.data.GamePlayerRowMapper GAME_PLAYER =
       it.vitalegi.rpgboard.be.reactivex.data.GamePlayerRowMapper.newInstance(

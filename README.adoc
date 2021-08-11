@@ -14,7 +14,6 @@ To launch your tests:
 
 [source]
 ----
-SET PORT=8888
 ./mvnw clean test
 ----
 

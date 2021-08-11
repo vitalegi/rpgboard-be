@@ -1,11 +1,11 @@
 {
   "security": {
     "cors": [
-      "https://rpg-board.netlify.app",
       "http://localhost:8080"
-    ]
+    ],
+    "auth": "DUMMY"
   },
   "database": {
-    "sslMode": "REQUIRE"
+    "sslMode": "ALLOW"
   }
 }

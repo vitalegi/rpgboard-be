@@ -14,7 +14,6 @@ public class GameItemRepository extends AbstractSinglePkCrudRepository<GameItem,
   Logger log = LoggerFactory.getLogger(this.getClass());
 
   public GameItemRepository() {
-    super(
-        Mappers.GAME_ITEM, GameItem::map, GameItem::mapPK, GameItem.BUILDER);
+    super(Mappers.GAME_ITEM, GameItem::map, GameItem::mapPK, GameItem.BUILDER);
   }
 }

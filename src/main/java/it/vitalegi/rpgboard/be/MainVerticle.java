@@ -12,6 +12,7 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Handler;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSBridgeOptions;
@@ -71,7 +72,6 @@ public class MainVerticle extends AbstractVerticle {
 
   public Completable rxStart(JsonObject config) {
     log.info("Setup properties done");
-
     ObjectMapper mapper = io.vertx.core.json.jackson.DatabindCodec.mapper();
     mapper.registerModule(new JavaTimeModule());
     log.info("JavaTimeModule is registered, dates' handling is available.");
@@ -90,7 +90,7 @@ public class MainVerticle extends AbstractVerticle {
         .handler(BodyHandler.create())
         .handler(SessionHandler.create(LocalSessionStore.create(vertx)));
 
-    FirebaseAuthProvider.init();
+    FirebaseAuthProvider.init(config);
 
     AuthProvider authProvider = beanContext.getBean(AuthProvider.class);
     WebSocketBridgeListener wsBridgeListener = beanContext.getBean(WebSocketBridgeListener.class);
@@ -123,7 +123,7 @@ public class MainVerticle extends AbstractVerticle {
         vertx
             .createHttpServer()
             .requestHandler(router)
-            .rxListen(Integer.parseInt(System.getenv("PORT")), "0.0.0.0")
+            .rxListen(config.getInteger("PORT"), "0.0.0.0")
             .ignoreElement();
 
     vertx.setPeriodic(
@@ -136,6 +136,24 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   protected ConfigRetrieverOptions setupConfig() {
+    String env = config().getString("ENV", System.getenv("ENV"));
+
+    ConfigStoreOptions verticleOptions =
+        new ConfigStoreOptions().setConfig(config()).setType("json");
+
+    ConfigStoreOptions environmentVariables =
+        new ConfigStoreOptions()
+            .setType("env")
+            .setConfig(
+                new JsonObject()
+                    .put(
+                        "keys",
+                        new JsonArray()
+                            .add("ENV")
+                            .add("PORT")
+                            .add("JDBC_DATABASE_URL")
+                            .add("FIREBASE_PRIVATE_KEY")));
+
     ConfigStoreOptions commonFileStore =
         new ConfigStoreOptions()
             .setType("file")
@@ -148,9 +166,13 @@ public class MainVerticle extends AbstractVerticle {
             .setType("file")
             .setFormat("json")
             .setOptional(false)
-            .setConfig(new JsonObject().put("path", "config-" + System.getenv("ENV") + ".json"));
+            .setConfig(new JsonObject().put("path", "config-" + env + ".json"));
 
-    return new ConfigRetrieverOptions().addStore(commonFileStore).addStore(fileStore);
+    return new ConfigRetrieverOptions()
+        .addStore(verticleOptions)
+        .addStore(environmentVariables)
+        .addStore(commonFileStore)
+        .addStore(fileStore);
   }
 
   protected CorsHandler corsHandler(JsonObject config) {
