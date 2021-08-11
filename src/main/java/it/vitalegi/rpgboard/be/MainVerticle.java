@@ -71,7 +71,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   public Completable rxStart(JsonObject config) {
-    log.info("Setup properties done");
+    log.info("Setup properties done: {}", config.encodePrettily());
     ObjectMapper mapper = io.vertx.core.json.jackson.DatabindCodec.mapper();
     mapper.registerModule(new JavaTimeModule());
     log.info("JavaTimeModule is registered, dates' handling is available.");
@@ -249,11 +249,6 @@ public class MainVerticle extends AbstractVerticle {
               .put("description", reply.cause().getMessage());
       context.json(payload);
     }
-  }
-
-  @Singleton
-  protected PgPool getClient(Vertx vertx, JsonObject config) {
-    return VertxUtil.pool(vertx, config);
   }
 
   private DeliveryOptions deliveryOptions(RoutingContext ctx) {

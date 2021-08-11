@@ -13,6 +13,7 @@ import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.pgclient.PgPool;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
+import it.vitalegi.rpgboard.be.service.GamePlayerRoleServiceLocal;
 import it.vitalegi.rpgboard.be.service.GameService;
 import it.vitalegi.rpgboard.be.util.JsonObserver;
 import it.vitalegi.rpgboard.be.util.UuidUtil;
@@ -26,6 +27,7 @@ import java.util.UUID;
 public class GameVerticle extends AbstractVerticle {
   static Logger log = LoggerFactory.getLogger(GameVerticle.class);
   protected GameService gameService;
+  protected GamePlayerRoleServiceLocal gamePlayerRoleServiceLocal;
   protected PgPool client;
 
   @Override
@@ -40,7 +42,13 @@ public class GameVerticle extends AbstractVerticle {
     beanContext.registerSingleton(vertx);
 
     gameService = beanContext.getBean(GameService.class);
-    client = beanContext.getBean(PgPool.class);
+    gamePlayerRoleServiceLocal = beanContext.getBean(GamePlayerRoleServiceLocal.class);
+
+    if (!config().getString("DATABASE_URL", "").equals("")) {
+      client = beanContext.getBean(PgPool.class);
+    } else {
+      log.info("No database provided, skip configuration.");
+    }
 
     eventBus.consumer("external.incoming.game.add", this::addGame);
     eventBus.consumer("external.incoming.game.getAll", this::getGames);
@@ -51,6 +59,7 @@ public class GameVerticle extends AbstractVerticle {
     eventBus.consumer("game.getAll", this::getGames);
     eventBus.consumer("game.update", this::updateGame);
     eventBus.consumer("game.delete", this::deleteGame);
+    eventBus.consumer("game.userRoles.get", this::getUserRoles);
     log.info("Start done");
     startPromise.complete();
   }
@@ -110,6 +119,20 @@ public class GameVerticle extends AbstractVerticle {
   protected void getGames(Message<JsonObject> msg) {
     JsonObserver observer = JsonObserver.init(msg, "getGames");
     cx(conn -> gameService.getGames(conn, getUserId(msg)).toMaybe()).subscribe(observer);
+  }
+
+  protected void getUserRoles(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "getUserRoles");
+    JsonObject body = msg.body();
+    tx(conn -> {
+          UUID gameId = UuidUtil.getUUID(body.getString("gameId"));
+          UUID userId = UuidUtil.getUUID(body.getString("userId"));
+
+          return Single.just(msg)
+              .flatMap(m -> gamePlayerRoleServiceLocal.getUserRoles(conn, gameId, userId))
+              .toMaybe();
+        })
+        .subscribe(observer);
   }
 
   protected <E> Function<E, E> notNull(Function<E, Object> extractor, String field) {

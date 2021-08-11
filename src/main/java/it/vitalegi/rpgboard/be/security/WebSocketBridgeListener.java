@@ -1,17 +1,13 @@
 package it.vitalegi.rpgboard.be.security;
 
-import io.reactivex.Maybe;
 import io.reactivex.Single;
-import io.reactivex.functions.Function;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.bridge.BridgeEventType;
+import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.ext.auth.User;
 import io.vertx.reactivex.ext.web.handler.sockjs.BridgeEvent;
-import io.vertx.reactivex.pgclient.PgPool;
-import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.MainVerticle;
-import it.vitalegi.rpgboard.be.service.GamePlayerRoleServiceLocal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,8 +22,7 @@ import java.util.function.BiConsumer;
 public class WebSocketBridgeListener implements Handler<BridgeEvent> {
   Logger log = LoggerFactory.getLogger(this.getClass());
   @Inject AuthProvider authProvider;
-  @Inject GamePlayerRoleServiceLocal gamePlayerRoleServiceLocal;
-  @Inject PgPool pgPool;
+  @Inject EventBus eventBus;
 
   @Override
   public void handle(BridgeEvent event) {
@@ -134,9 +129,12 @@ public class WebSocketBridgeListener implements Handler<BridgeEvent> {
   }
 
   protected void processGameRegistration(BridgeEvent event, UUID gameId, UUID userId) {
-    cx(conn -> gamePlayerRoleServiceLocal.getUserRoles(conn, gameId, userId).toMaybe())
+    eventBus
+        .rxRequest("game.userRoles.get", new JsonObject())
+        .map(msg -> (JsonObject) msg.body())
         .subscribe(
             roles -> {
+              log.info("RECEIVED: {}", roles);
               boolean hasRoles = roles != null && !roles.isEmpty();
               logDetails(log::info, event, hasRoles, userId, gameId, "GamePlayerRole check");
               event.complete(hasRoles);
@@ -217,9 +215,5 @@ public class WebSocketBridgeListener implements Handler<BridgeEvent> {
       return UUID.fromString(gameId);
     }
     return null;
-  }
-
-  protected <T> Maybe<T> cx(Function<SqlConnection, Maybe<T>> function) {
-    return pgPool.rxWithConnection(function);
   }
 }

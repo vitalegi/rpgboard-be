@@ -59,6 +59,7 @@ public class VertxUtil {
   }
 
   public static PgPool pool(Vertx vertx, JsonObject config) {
+    log.info("Load database connection pool");
     String mode = config.getJsonObject("database").getString("sslMode");
     SslMode sslMode = SslMode.of(mode);
     log.info("Use SSL mode: {}", sslMode);

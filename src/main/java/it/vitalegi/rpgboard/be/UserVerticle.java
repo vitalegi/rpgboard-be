@@ -38,7 +38,11 @@ public class UserVerticle extends AbstractVerticle {
     beanContext.registerSingleton(vertx);
 
     userServiceLocal = beanContext.getBean(UserServiceLocal.class);
-    client = beanContext.getBean(PgPool.class);
+    if (!config().getString("DATABASE_URL", "").equals("")) {
+      client = beanContext.getBean(PgPool.class);
+    } else {
+      log.info("No database provided, skip configuration.");
+    }
 
     eventBus.consumer("user.registration", this::registerUser);
     eventBus.consumer("user.findByExternalUserId", this::findByExternalUserId);
