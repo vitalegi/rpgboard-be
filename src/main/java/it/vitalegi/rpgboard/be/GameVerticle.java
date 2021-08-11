@@ -21,7 +21,6 @@ import it.vitalegi.rpgboard.be.util.VertxUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Singleton;
 import java.util.UUID;
 
 public class GameVerticle extends AbstractVerticle {
@@ -32,35 +31,41 @@ public class GameVerticle extends AbstractVerticle {
 
   @Override
   public void start(Promise<Void> startPromise) throws Exception {
-    log.info("Start");
-    EventBus eventBus = vertx.eventBus();
-    vertx.exceptionHandler(
-        e -> log.error("Unhandled exception {}: {}", e.getClass().getName(), e.getMessage(), e));
+    try {
+      log.info("Start");
+      EventBus eventBus = vertx.eventBus();
+      vertx.exceptionHandler(
+          e -> log.error("Unhandled exception {}: {}", e.getClass().getName(), e.getMessage(), e));
 
-    BeanContext beanContext = BeanContext.run();
-    beanContext.registerSingleton(config());
-    beanContext.registerSingleton(vertx);
+      BeanContext beanContext = BeanContext.run();
+      beanContext.registerSingleton(config());
+      beanContext.registerSingleton(vertx);
 
-    gameService = beanContext.getBean(GameService.class);
-    gamePlayerRoleServiceLocal = beanContext.getBean(GamePlayerRoleServiceLocal.class);
-    if (!config().getString("DATABASE_URL", "").equals("")) {
-      client = beanContext.getBean(PgPool.class);
-    } else {
-      log.info("No database provided, skip configuration.");
+      gameService = beanContext.getBean(GameService.class);
+      gamePlayerRoleServiceLocal = beanContext.getBean(GamePlayerRoleServiceLocal.class);
+      if (!config().getString("DATABASE_URL", "").equals("")) {
+        beanContext.registerSingleton(getClient(vertx, config()));
+        client = beanContext.getBean(PgPool.class);
+      } else {
+        log.info("No database provided, skip configuration.");
+      }
+
+      eventBus.consumer("external.incoming.game.add", this::addGame);
+      eventBus.consumer("external.incoming.game.getAll", this::getGames);
+      eventBus.consumer("external.incoming.game.getById", this::getGame);
+      eventBus.consumer("game.add", this::addGame);
+      eventBus.consumer("game.get", this::getGame);
+      eventBus.consumer("game.join", this::joinGame);
+      eventBus.consumer("game.getAll", this::getGames);
+      eventBus.consumer("game.update", this::updateGame);
+      eventBus.consumer("game.delete", this::deleteGame);
+      eventBus.consumer("game.userRoles.get", this::getUserRoles);
+      log.info("Start done");
+      startPromise.complete();
+    } catch (Exception e) {
+      log.error("KO", e);
+      throw e;
     }
-
-    eventBus.consumer("external.incoming.game.add", this::addGame);
-    eventBus.consumer("external.incoming.game.getAll", this::getGames);
-    eventBus.consumer("external.incoming.game.getById", this::getGame);
-    eventBus.consumer("game.add", this::addGame);
-    eventBus.consumer("game.get", this::getGame);
-    eventBus.consumer("game.join", this::joinGame);
-    eventBus.consumer("game.getAll", this::getGames);
-    eventBus.consumer("game.update", this::updateGame);
-    eventBus.consumer("game.delete", this::deleteGame);
-    eventBus.consumer("game.userRoles.get", this::getUserRoles);
-    log.info("Start done");
-    startPromise.complete();
   }
 
   protected void addGame(Message<JsonObject> msg) {
@@ -164,8 +169,8 @@ public class GameVerticle extends AbstractVerticle {
     return game;
   }
 
-  @Singleton
   protected PgPool getClient(Vertx vertx, JsonObject config) {
+    log.info("getClient");
     return VertxUtil.pool(vertx, config);
   }
 
