@@ -1,5 +1,6 @@
 package it.vitalegi.rpgboard.be.service;
 
+import io.reactivex.Maybe;
 import io.reactivex.Single;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.User;
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.time.OffsetDateTime;
 
 @Singleton
 public class UserServiceLocal {
@@ -17,15 +19,25 @@ public class UserServiceLocal {
 
   Logger log = LoggerFactory.getLogger(UserServiceLocal.class);
 
-  public Single<User> register(SqlConnection conn, String userId, String name) {
-    notNull(userId, "userId null");
+  public Single<User> register(SqlConnection conn, String externalUserId, String name) {
+    notNull(externalUserId, "externalUserId null");
     notNull(name, "name null");
     User user = new User();
-    user.setId(userId);
+    user.setExternalUserId(externalUserId);
     user.setName(name);
+    OffsetDateTime now = OffsetDateTime.now();
+    user.setCreateDate(now);
+    user.setLastUpdate(now);
     return Single.just(user)
         .flatMap(u -> userRepository.add(conn, user).singleOrError())
         .map(VertxUtil.logEntry("user created", User::toString));
+  }
+
+  public Maybe<User> findByExternalUserId(SqlConnection conn, String externalUserId) {
+    notNull(externalUserId, "externalUserId null");
+    return Maybe.just(externalUserId)
+        .flatMap(id -> userRepository.findByExternalUserId(conn, externalUserId))
+        .map(VertxUtil.logEntry("user found", User::toString));
   }
 
   protected void notNull(Object obj, String msg) {

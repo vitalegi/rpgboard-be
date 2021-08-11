@@ -6,14 +6,17 @@ import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
+import io.reactivex.Single;
 import io.vertx.reactivex.ext.auth.User;
 import io.vertx.reactivex.ext.auth.authorization.Authorization;
 import io.vertx.reactivex.ext.auth.authorization.PermissionBasedAuthorization;
 import it.vitalegi.rpgboard.be.MainVerticle;
+import it.vitalegi.rpgboard.be.exception.InvalidTokenException;
 import it.vitalegi.rpgboard.be.logging.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Singleton;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 
+@Singleton
 public class FirebaseAuthProvider extends AuthProvider {
   public static final String METHOD_NAME = "FIREBASE";
   static Logger log = LoggerFactory.getLogger(FirebaseAuthProvider.class);
@@ -45,17 +49,16 @@ public class FirebaseAuthProvider extends AuthProvider {
     log.info("Init completed");
   }
 
-  public User getUser(String token) {
+  public Single<User> getUser(String token) {
     long start = System.currentTimeMillis();
     try {
       FirebaseAuth instance = FirebaseAuth.getInstance();
       FirebaseToken auth = instance.verifyIdToken(token);
       User user = User.fromName(auth.getEmail());
-      user.principal().put(MainVerticle.UID, auth.getUid());
+      user.principal().put(MainVerticle.EXTERNAL_UID, auth.getUid());
       user.principal().put("mail", auth.getEmail());
       user.authorizations().add("firebaseJwt", getAuthorizations(auth));
-      LogUtil.success("firebase.validate", start, auth.getUid(), auth.getEmail());
-      return user;
+      return fillUser(user, auth.getUid());
     } catch (FirebaseAuthException e) {
       LogUtil.failure("firebase.validate", start, "unknown", "", e);
       throw new InvalidTokenException(e);

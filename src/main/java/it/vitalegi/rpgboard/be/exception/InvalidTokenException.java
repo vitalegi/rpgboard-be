@@ -1,4 +1,4 @@
-package it.vitalegi.rpgboard.be.security;
+package it.vitalegi.rpgboard.be.exception;
 
 public class InvalidTokenException extends RuntimeException {
   public InvalidTokenException(String message) {

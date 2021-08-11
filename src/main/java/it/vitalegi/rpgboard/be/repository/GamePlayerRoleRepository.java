@@ -26,13 +26,13 @@ public class GamePlayerRoleRepository extends AbstractSinglePkCrudRepository<Gam
   }
 
   public Single<List<GamePlayerRole>> getUserRoles(
-      SqlConnection connection, UUID gameId, String userId) {
+      SqlConnection connection, UUID gameId, UUID userId) {
     return super.getByFields(
         connection, GamePlayerRole.GAME_ID, gameId, GamePlayerRole.USER_ID, userId);
   }
 
   public Single<Boolean> hasUserRole(
-      SqlConnection connection, UUID gameId, String userId, String role) {
+      SqlConnection connection, UUID gameId, UUID userId, String role) {
     GamePlayerRole gpr = new GamePlayerRole();
     gpr.setGameId(gameId);
     gpr.setUserId(userId);
@@ -40,7 +40,7 @@ public class GamePlayerRoleRepository extends AbstractSinglePkCrudRepository<Gam
     return getByFields(
             connection,
             gpr,
-            Arrays.asList(GamePlayerRole.GAME_ID, GamePlayerRole.USER_ID, GamePlayerRole.ROLE))
+            Arrays.asList(GamePlayerRole.GAME_ID, GamePlayerRole.USER_ID, GamePlayerRole.USER_ROLE))
         .map(roles -> !roles.isEmpty());
   }
 }

@@ -21,34 +21,39 @@ public class GameService {
   Logger log = LoggerFactory.getLogger(GameService.class);
 
   public Single<Game> addGame(
-      SqlConnection conn, String userId, String name, String type, Boolean open) {
-    return gameServiceLocal.addGame(conn, userId, name, type, open);
+      SqlConnection conn,
+      UUID userId,
+      String name,
+      String type,
+      String status,
+      String visibilityPolicy) {
+    return gameServiceLocal.addGame(conn, userId, name, type, status, visibilityPolicy);
   }
 
-  public Single<Game> getGame(SqlConnection conn, String userId, UUID gameId) {
+  public Single<Game> getGame(SqlConnection conn, UUID userId, UUID gameId) {
     return checkRole(conn, userId, gameId, GameRole.PLAYER)
         .flatMap(r -> gameServiceLocal.getGame(conn, gameId));
   }
 
-  public Single<GamePlayerRole> joinGame(SqlConnection conn, String userId, UUID gameId) {
+  public Single<GamePlayerRole> joinGame(SqlConnection conn, UUID userId, UUID gameId) {
     return gameServiceLocal.joinGame(conn, userId, gameId);
   }
 
-  public Single<Game> updateGame(SqlConnection conn, String userId, Game game) {
-    return checkRole(conn, userId, game.getId(), GameRole.MASTER)
+  public Single<Game> updateGame(SqlConnection conn, UUID userId, Game game) {
+    return checkRole(conn, userId, game.getGameId(), GameRole.MASTER)
         .flatMap(r -> gameServiceLocal.updateGame(conn, game));
   }
 
-  public Single<Game> deleteGame(SqlConnection conn, String userId, UUID gameId) {
+  public Single<Game> deleteGame(SqlConnection conn, UUID userId, UUID gameId) {
     return checkRole(conn, userId, gameId, GameRole.MASTER)
         .flatMap(r -> gameServiceLocal.deleteGame(conn, userId, gameId));
   }
 
-  public Single<List<Game>> getGames(SqlConnection conn, String userId) {
+  public Single<List<Game>> getGames(SqlConnection conn, UUID userId) {
     return gameServiceLocal.getGames(conn);
   }
 
-  protected Single<Boolean> checkRole(SqlConnection conn, String userId, UUID gameId, String role) {
+  protected Single<Boolean> checkRole(SqlConnection conn, UUID userId, UUID gameId, String role) {
     return gamePlayerRoleServiceLocal.checkUserRole(conn, gameId, userId, role);
   }
 }

@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,34 +25,43 @@ public class GameServiceLocal {
   Logger log = LoggerFactory.getLogger(GameServiceLocal.class);
 
   public Single<Game> addGame(
-      SqlConnection conn, String userId, String name, String type, Boolean open) {
+      SqlConnection conn,
+      UUID userId,
+      String name,
+      String type,
+      String status,
+      String visibilityPolicy) {
     notNull(userId, "userId null");
     notNull(name, "name null");
     notNull(type, "type null");
-    notNull(open, "open null");
+    notNull(status, "status null");
     Game game = new Game();
-    game.setOpen(open);
     game.setName(name);
-    game.setType(type);
     game.setOwnerId(userId);
+    game.setStatus(status);
+    game.setType(type);
+    game.setVisibilityPolicy(visibilityPolicy);
+    game.setCreateDate(OffsetDateTime.now());
+    game.setLastUpdate(OffsetDateTime.now());
+
     return Single.just(game)
         .flatMap(g -> gameRepository.add(conn, g).singleOrError())
-        .map(VertxUtil.logEntry("game created", Game::getId, Game::getName, Game::getOwnerId))
-        .flatMap(g -> gamePlayerService.addGamePlayer(conn, g.getId(), userId).map(gp -> g))
+        .map(VertxUtil.logEntry("game created", Game::getGameId, Game::getName, Game::getOwnerId))
+        .flatMap(g -> gamePlayerService.addGamePlayer(conn, g.getGameId(), userId).map(gp -> g))
         .flatMap(
             g ->
                 gamePlayerRoleServiceLocal
-                    .addUserRole(conn, g.getId(), userId, GameRole.MASTER)
+                    .addUserRole(conn, g.getGameId(), userId, GameRole.MASTER)
                     .map(gpr -> g))
         .flatMap(
             g ->
                 gamePlayerRoleServiceLocal
-                    .addUserRole(conn, g.getId(), userId, GameRole.PLAYER)
+                    .addUserRole(conn, g.getGameId(), userId, GameRole.PLAYER)
                     .map(gpr -> g))
         .map(VertxUtil.debug("creation done"));
   }
 
-  public Single<GamePlayerRole> joinGame(SqlConnection conn, String userId, UUID gameId) {
+  public Single<GamePlayerRole> joinGame(SqlConnection conn, UUID userId, UUID gameId) {
     return Single.just(gameId)
         .flatMap(g -> gamePlayerService.addGamePlayer(conn, gameId, userId))
         .flatMap(g -> gamePlayerRoleServiceLocal.addUserRole(conn, gameId, userId, GameRole.PLAYER))
@@ -66,7 +76,7 @@ public class GameServiceLocal {
     return Single.just(game).flatMap(g -> gameRepository.update(conn, g).singleOrError());
   }
 
-  public Single<Game> deleteGame(SqlConnection conn, String userId, UUID gameId) {
+  public Single<Game> deleteGame(SqlConnection conn, UUID userId, UUID gameId) {
     log.info("deleteGame gameId={} userId={}", gameId, userId);
     return gameRepository.delete(conn, gameId).singleOrError();
   }

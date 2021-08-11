@@ -1,5 +1,7 @@
 package it.vitalegi.rpgboard.be;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.micronaut.context.BeanContext;
 import io.micronaut.context.annotation.Factory;
 import io.reactivex.Completable;
@@ -41,6 +43,7 @@ import java.util.stream.Collectors;
 @Factory
 public class MainVerticle extends AbstractVerticle {
   public static final String UID = "uid";
+  public static final String EXTERNAL_UID = "externalUid";
   Logger log = LoggerFactory.getLogger(MainVerticle.class);
 
   @Override
@@ -68,10 +71,17 @@ public class MainVerticle extends AbstractVerticle {
 
   public Completable rxStart(JsonObject config) {
     log.info("Setup properties done");
+
+    ObjectMapper mapper = io.vertx.core.json.jackson.DatabindCodec.mapper();
+    mapper.registerModule(new JavaTimeModule());
+    log.info("JavaTimeModule is registered, dates' handling is available.");
+
     vertx.deployVerticle(new GameVerticle(), new DeploymentOptions().setConfig(config));
+    vertx.deployVerticle(new UserVerticle(), new DeploymentOptions().setConfig(config));
     BeanContext beanContext = BeanContext.run();
     beanContext.registerSingleton(config);
     beanContext.registerSingleton(vertx);
+    beanContext.registerSingleton(vertx.eventBus());
 
     Router router = Router.router(vertx);
     router
@@ -225,6 +235,8 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private DeliveryOptions deliveryOptions(RoutingContext ctx) {
-    return new DeliveryOptions().addHeader(UID, ctx.get(UID));
+    return new DeliveryOptions()
+        .addHeader(UID, ctx.get(UID))
+        .addHeader(EXTERNAL_UID, ctx.get(EXTERNAL_UID));
   }
 }

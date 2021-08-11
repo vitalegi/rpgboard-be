@@ -54,7 +54,10 @@ public class JsonObserver implements MaybeObserver<Object> {
   }
 
   @Override
-  public void onComplete() {}
+  public void onComplete() {
+    LogUtil.success(methodName, startTime, getUserId(msg), "completed with empty result");
+    msg.reply(new JsonObject());
+  }
 
   protected String getUserId(Message<JsonObject> msg) {
     return msg.headers().get(MainVerticle.UID);

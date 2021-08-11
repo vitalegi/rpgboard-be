@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Singleton
-public class GamePlayerRepository extends AbstractBiPkCrudRepository<GamePlayer, UUID, String> {
+public class GamePlayerRepository extends AbstractBiPkCrudRepository<GamePlayer, UUID, UUID> {
 
   Logger log = LoggerFactory.getLogger(this.getClass());
 

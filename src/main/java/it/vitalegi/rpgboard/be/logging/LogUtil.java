@@ -49,6 +49,9 @@ public class LogUtil {
   }
 
   protected static Throwable getRoot(Throwable e) {
+    if (e == null) {
+      return null;
+    }
     while (e.getCause() != null) {
       e = e.getCause();
     }

@@ -95,6 +95,19 @@ public abstract class AbstractCrudRepository<E> extends DatabaseProxy<E> {
         in);
   }
 
+  protected Single<E> getUniqueByField(
+          SqlConnection connection, String fieldName, Object fieldValue) {
+    Map<String, Object> in = new HashMap<>();
+    in.put(fieldName, fieldValue);
+    return querySingle(
+            connection,
+            SelectFactory.init(table)
+                    .where(WhereClause.and(new EqualsPlaceholder(FieldsPicker.exact(fieldName))))
+                    .build(),
+            in)
+            .singleOrError();
+  }
+
   public Single<List<E>> getAll(SqlConnection connection) {
     return queryList(connection, SelectFactory.init(table).build(), Collections.emptyMap());
   }

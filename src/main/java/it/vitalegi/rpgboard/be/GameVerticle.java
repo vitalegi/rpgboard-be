@@ -14,8 +14,8 @@ import io.vertx.reactivex.pgclient.PgPool;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
 import it.vitalegi.rpgboard.be.service.GameService;
-import it.vitalegi.rpgboard.be.service.UserServiceLocal;
 import it.vitalegi.rpgboard.be.util.JsonObserver;
+import it.vitalegi.rpgboard.be.util.UuidUtil;
 import it.vitalegi.rpgboard.be.util.VertxUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +26,6 @@ import java.util.UUID;
 public class GameVerticle extends AbstractVerticle {
   static Logger log = LoggerFactory.getLogger(GameVerticle.class);
   protected GameService gameService;
-  protected UserServiceLocal userServiceLocal;
   protected PgPool client;
 
   @Override
@@ -41,7 +40,6 @@ public class GameVerticle extends AbstractVerticle {
     beanContext.registerSingleton(vertx);
 
     gameService = beanContext.getBean(GameService.class);
-    userServiceLocal = beanContext.getBean(UserServiceLocal.class);
     client = beanContext.getBean(PgPool.class);
 
     eventBus.consumer("external.incoming.game.add", this::addGame);
@@ -53,21 +51,8 @@ public class GameVerticle extends AbstractVerticle {
     eventBus.consumer("game.getAll", this::getGames);
     eventBus.consumer("game.update", this::updateGame);
     eventBus.consumer("game.delete", this::deleteGame);
-    eventBus.consumer("user.registration", this::registerUser);
     log.info("Start done");
     startPromise.complete();
-  }
-
-  protected void registerUser(Message<JsonObject> msg) {
-    JsonObserver observer = JsonObserver.init(msg, "registerUser");
-    JsonObject body = msg.body();
-    tx(conn -> {
-          String name = body.getString("name");
-          return Single.just(msg)
-              .flatMap(m -> userServiceLocal.register(conn, getUserId(msg), name))
-              .toMaybe();
-        })
-        .subscribe(observer);
   }
 
   protected void addGame(Message<JsonObject> msg) {
@@ -76,9 +61,14 @@ public class GameVerticle extends AbstractVerticle {
     tx(conn -> {
           String name = body.getString("name");
           String type = body.getString("type");
-          Boolean open = body.getBoolean("open");
+          String status = body.getString("status");
+          String visibilityPolicy = body.getString("visibilityPolicy");
+
           return Single.just(msg)
-              .flatMap(m -> gameService.addGame(conn, getUserId(msg), name, type, open))
+              .flatMap(
+                  m ->
+                      gameService.addGame(
+                          conn, getUserId(msg), name, type, status, visibilityPolicy))
               .toMaybe();
         })
         .subscribe(observer);
@@ -86,13 +76,13 @@ public class GameVerticle extends AbstractVerticle {
 
   protected void getGame(Message<JsonObject> msg) {
     JsonObserver observer = JsonObserver.init(msg, "getGame");
-    UUID gameId = getUUID(msg.body().getString("gameId"));
+    UUID gameId = UuidUtil.getUUID(msg.body().getString("gameId"));
     cx(conn -> gameService.getGame(conn, getUserId(msg), gameId).toMaybe()).subscribe(observer);
   }
 
   protected void joinGame(Message<JsonObject> msg) {
     JsonObserver observer = JsonObserver.init(msg, "joinGame");
-    UUID gameId = getUUID(msg.body().getString("gameId"));
+    UUID gameId = UuidUtil.getUUID(msg.body().getString("gameId"));
     tx(conn -> gameService.joinGame(conn, getUserId(msg), gameId).toMaybe()).subscribe(observer);
   }
 
@@ -101,10 +91,10 @@ public class GameVerticle extends AbstractVerticle {
     tx(conn ->
             Single.just(msg)
                 .map(this::mapGameParams)
-                .map(notNull(Game::getId, "id"))
+                .map(notNull(Game::getGameId, "gameId"))
                 .map(notNull(Game::getName, "name"))
                 .map(notNull(Game::getOwnerId, "ownerId"))
-                .map(notNull(Game::getOpen, "open"))
+                .map(notNull(Game::getStatus, "status"))
                 .flatMap(game -> gameService.updateGame(conn, getUserId(msg), game))
                 .toMaybe())
         .subscribe(observer);
@@ -112,7 +102,7 @@ public class GameVerticle extends AbstractVerticle {
 
   protected void deleteGame(Message<JsonObject> msg) {
     JsonObserver observer = JsonObserver.init(msg, "deleteGame");
-    UUID gameId = getUUID(msg.body().getString("gameId"));
+    UUID gameId = UuidUtil.getUUID(msg.body().getString("gameId"));
 
     tx(conn -> gameService.deleteGame(conn, getUserId(msg), gameId).toMaybe()).subscribe(observer);
   }
@@ -142,10 +132,12 @@ public class GameVerticle extends AbstractVerticle {
   protected Game mapGameParams(Message<JsonObject> msg) {
     JsonObject body = msg.body();
     Game game = new Game();
-    game.setId(getUUID(body.getString("gameId")));
+    game.setGameId(UuidUtil.getUUID(body.getString("gameId")));
     game.setName(body.getString("name"));
-    game.setOwnerId(body.getString("ownerId"));
-    game.setOpen(body.getBoolean("open"));
+    game.setOwnerId(UuidUtil.getUUID(body.getString("ownerId")));
+    game.setStatus(body.getString("status"));
+    game.setType(body.getString("type"));
+    game.setVisibilityPolicy(body.getString("visibilityPolicy"));
     log.info("map {}", game);
     return game;
   }
@@ -155,15 +147,8 @@ public class GameVerticle extends AbstractVerticle {
     return VertxUtil.pool(vertx, config);
   }
 
-  protected UUID getUUID(String str) {
-    if (str == null) {
-      return null;
-    }
-    return UUID.fromString(str);
-  }
-
-  protected String getUserId(Message<JsonObject> msg) {
-    return msg.headers().get(MainVerticle.UID);
+  protected UUID getUserId(Message<JsonObject> msg) {
+    return UuidUtil.getUUID(msg.headers().get(MainVerticle.UID));
   }
 
   protected <E> Function<E, E> log(String msg) {

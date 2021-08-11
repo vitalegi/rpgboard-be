@@ -30,12 +30,12 @@ public class GamePlayer {
   UUID gameId;
 
   @Column(name = USER_ID)
-  String userId;
+  UUID userId;
 
   @Column(name = USERNAME)
   String username;
 
-  public static Map<String, Object> map(UUID gameId, String userId, String username) {
+  public static Map<String, Object> map(UUID gameId, UUID userId, String username) {
     Map<String, Object> map = new HashMap<>();
     map.put("game_id", gameId);
     map.put("user_id", userId);
@@ -47,7 +47,7 @@ public class GamePlayer {
     return map(entry.getGameId(), entry.getUserId(), entry.getUsername());
   }
 
-  public static Map<String, Object> mapPK(UUID gameId, String userId) {
+  public static Map<String, Object> mapPK(UUID gameId, UUID userId) {
     Map<String, Object> map = new HashMap<>();
     map.put(GAME_ID, gameId);
     map.put(USER_ID, userId);
@@ -68,11 +68,11 @@ public class GamePlayer {
     this.gameId = gameId;
   }
 
-  public String getUserId() {
+  public UUID getUserId() {
     return userId;
   }
 
-  public void setUserId(String userId) {
+  public void setUserId(UUID userId) {
     this.userId = userId;
   }
 
@@ -89,9 +89,8 @@ public class GamePlayer {
     return "GamePlayer{"
         + "gameId="
         + gameId
-        + ", userId='"
+        + ", userId="
         + userId
-        + '\''
         + ", username='"
         + username
         + '\''

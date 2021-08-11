@@ -18,7 +18,7 @@ public class GamePlayerService {
   @Inject protected GamePlayerRepository gamePlayerRepository;
   Logger log = LoggerFactory.getLogger(GamePlayerService.class);
 
-  public Single<GamePlayer> addGamePlayer(SqlConnection conn, UUID gameId, String userId) {
+  public Single<GamePlayer> addGamePlayer(SqlConnection conn, UUID gameId, UUID userId) {
     notNull(userId, "userId null");
     notNull(gameId, "gameId null");
 
@@ -31,7 +31,7 @@ public class GamePlayerService {
         .map(VertxUtil.debug("game player entry created", GamePlayer::toString));
   }
 
-  public Single<Boolean> isMember(SqlConnection conn, UUID gameId, String userId) {
+  public Single<Boolean> isMember(SqlConnection conn, UUID gameId, UUID userId) {
     return gamePlayerRepository.getById(conn, gameId, userId).isEmpty().map(b -> !b);
   }
 
@@ -40,7 +40,7 @@ public class GamePlayerService {
         .flatMap(gp -> gamePlayerRepository.update(conn, gp).singleOrError());
   }
 
-  public Single<GamePlayer> deleteGamePlayer(SqlConnection conn, UUID gameId, String userId) {
+  public Single<GamePlayer> deleteGamePlayer(SqlConnection conn, UUID gameId, UUID userId) {
     return gamePlayerRepository.delete(conn, gameId, userId).singleOrError();
   }
 
