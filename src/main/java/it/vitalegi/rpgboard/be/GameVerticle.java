@@ -43,7 +43,6 @@ public class GameVerticle extends AbstractVerticle {
 
     gameService = beanContext.getBean(GameService.class);
     gamePlayerRoleServiceLocal = beanContext.getBean(GamePlayerRoleServiceLocal.class);
-
     if (!config().getString("DATABASE_URL", "").equals("")) {
       client = beanContext.getBean(PgPool.class);
     } else {

@@ -67,7 +67,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   public Completable rxStart(JsonObject config) {
-    log.info("Setup properties done: {}", config.encodePrettily());
+    log.info("Setup properties done");
     ObjectMapper mapper = io.vertx.core.json.jackson.DatabindCodec.mapper();
     mapper.registerModule(new JavaTimeModule());
     log.info("JavaTimeModule is registered, dates' handling is available.");
@@ -148,7 +148,8 @@ public class MainVerticle extends AbstractVerticle {
                         new JsonArray()
                             .add("ENV")
                             .add("PORT")
-                            .add("JDBC_DATABASE_URL")
+                            // .add("JDBC_DATABASE_URL")
+                            .add("DATABASE_URL")
                             .add("FIREBASE_PRIVATE_KEY")));
 
     ConfigStoreOptions commonFileStore =

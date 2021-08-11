@@ -18,7 +18,6 @@ import it.vitalegi.rpgboard.be.util.VertxUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Singleton;
 import java.util.UUID;
 
 public class UserVerticle extends AbstractVerticle {
@@ -28,26 +27,32 @@ public class UserVerticle extends AbstractVerticle {
 
   @Override
   public void start(Promise<Void> startPromise) throws Exception {
-    log.info("Start");
-    EventBus eventBus = vertx.eventBus();
-    vertx.exceptionHandler(
-        e -> log.error("Unhandled exception {}: {}", e.getClass().getName(), e.getMessage(), e));
+    try {
+      log.info("Start");
+      EventBus eventBus = vertx.eventBus();
+      vertx.exceptionHandler(
+          e -> log.error("Unhandled exception {}: {}", e.getClass().getName(), e.getMessage(), e));
 
-    BeanContext beanContext = BeanContext.run();
-    beanContext.registerSingleton(config());
-    beanContext.registerSingleton(vertx);
+      BeanContext beanContext = BeanContext.run();
+      beanContext.registerSingleton(config());
+      beanContext.registerSingleton(vertx);
 
-    userServiceLocal = beanContext.getBean(UserServiceLocal.class);
-    if (!config().getString("DATABASE_URL", "").equals("")) {
-      client = beanContext.getBean(PgPool.class);
-    } else {
-      log.info("No database provided, skip configuration.");
+      userServiceLocal = beanContext.getBean(UserServiceLocal.class);
+      if (!config().getString("DATABASE_URL", "").equals("")) {
+        beanContext.registerSingleton(getClient(vertx, config()));
+        client = beanContext.getBean(PgPool.class);
+      } else {
+        log.info("No database provided, skip configuration.");
+      }
+
+      eventBus.consumer("user.registration", this::registerUser);
+      eventBus.consumer("user.findByExternalUserId", this::findByExternalUserId);
+      log.info("Start done");
+      startPromise.complete();
+    } catch (Exception e) {
+      log.error("KO", e);
+      throw e;
     }
-
-    eventBus.consumer("user.registration", this::registerUser);
-    eventBus.consumer("user.findByExternalUserId", this::findByExternalUserId);
-    log.info("Start done");
-    startPromise.complete();
   }
 
   protected void registerUser(Message<JsonObject> msg) {
@@ -97,8 +102,8 @@ public class UserVerticle extends AbstractVerticle {
     return client.rxWithTransaction(function);
   }
 
-  @Singleton
   protected PgPool getClient(Vertx vertx, JsonObject config) {
+    log.info("getClient");
     return VertxUtil.pool(vertx, config);
   }
 
