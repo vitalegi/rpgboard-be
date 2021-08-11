@@ -18,7 +18,6 @@ import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSBridgeOptions;
 import io.vertx.reactivex.config.ConfigRetriever;
 import io.vertx.reactivex.core.AbstractVerticle;
-import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.core.http.HttpServerResponse;
@@ -30,15 +29,12 @@ import io.vertx.reactivex.ext.web.handler.CorsHandler;
 import io.vertx.reactivex.ext.web.handler.SessionHandler;
 import io.vertx.reactivex.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.reactivex.ext.web.sstore.LocalSessionStore;
-import io.vertx.reactivex.pgclient.PgPool;
 import it.vitalegi.rpgboard.be.security.AuthProvider;
 import it.vitalegi.rpgboard.be.security.FirebaseAuthProvider;
 import it.vitalegi.rpgboard.be.security.WebSocketBridgeListener;
-import it.vitalegi.rpgboard.be.util.VertxUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Singleton;
 import java.util.stream.Collectors;
 
 @Factory
@@ -123,7 +119,7 @@ public class MainVerticle extends AbstractVerticle {
         vertx
             .createHttpServer()
             .requestHandler(router)
-            .rxListen(config.getInteger("PORT"), "0.0.0.0")
+            .rxListen(Integer.parseInt(config.getString("PORT")), "0.0.0.0")
             .ignoreElement();
 
     vertx.setPeriodic(
@@ -146,6 +142,7 @@ public class MainVerticle extends AbstractVerticle {
             .setType("env")
             .setConfig(
                 new JsonObject()
+                    .put("raw-data", true)
                     .put(
                         "keys",
                         new JsonArray()
