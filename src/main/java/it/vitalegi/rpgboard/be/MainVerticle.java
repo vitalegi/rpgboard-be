@@ -98,7 +98,7 @@ public class MainVerticle extends AbstractVerticle {
 
     EventBus eventBus = vertx.eventBus();
 
-    router.route("/api/*").blockingHandler(authProvider);
+    router.route("/api/*").handler(authProvider);
 
     router.post("/api/game").handler(eventbusWithPayload("game.add"));
     router.get("/api/game/:gameId").handler(this::getGame);

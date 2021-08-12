@@ -8,6 +8,7 @@ import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
+import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.ext.auth.User;
 import io.vertx.reactivex.ext.auth.authorization.Authorization;
 import io.vertx.reactivex.ext.auth.authorization.PermissionBasedAuthorization;
@@ -17,6 +18,7 @@ import it.vitalegi.rpgboard.be.logging.LogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -29,6 +31,8 @@ import java.util.Set;
 public class FirebaseAuthProvider extends AuthProvider {
   public static final String METHOD_NAME = "FIREBASE";
   static Logger log = LoggerFactory.getLogger(FirebaseAuthProvider.class);
+
+  @Inject Vertx vertx;
 
   public static void init(JsonObject config) {
     log.info("Init");
@@ -57,21 +61,30 @@ public class FirebaseAuthProvider extends AuthProvider {
 
   public Single<User> getUser(String token) {
     long start = System.currentTimeMillis();
-    try {
-      FirebaseAuth instance = FirebaseAuth.getInstance();
-      FirebaseToken auth = instance.verifyIdToken(token);
-      User user = User.fromName(auth.getEmail());
-      user.principal().put(MainVerticle.EXTERNAL_UID, auth.getUid());
-      user.principal().put("mail", auth.getEmail());
-      user.authorizations().add("firebaseJwt", getAuthorizations(auth));
-      return fillUser(user, auth.getUid());
-    } catch (FirebaseAuthException e) {
-      LogUtil.failure("firebase.validate", start, "unknown", "", e);
-      throw new InvalidTokenException(e);
-    } catch (Throwable e) {
-      LogUtil.failure("firebase.validate", start, "unknown", "", e);
-      throw e;
-    }
+    return vertx
+        .rxExecuteBlocking(
+            (next) -> {
+              try {
+                FirebaseAuth instance = FirebaseAuth.getInstance();
+                next.complete(instance.verifyIdToken(token));
+              } catch (FirebaseAuthException e) {
+                throw new InvalidTokenException(e);
+              }
+            })
+        .toSingle()
+        .flatMap(
+            msg -> {
+              FirebaseToken auth = (FirebaseToken) msg;
+              User user = User.fromName(auth.getEmail());
+              user.principal().put(MainVerticle.EXTERNAL_UID, auth.getUid());
+              user.principal().put("mail", auth.getEmail());
+              user.authorizations().add("firebaseJwt", getAuthorizations(auth));
+              return fillUser(user, auth.getUid());
+            })
+        .doOnError(
+            e -> {
+              LogUtil.failure("firebase.validate", start, "unknown", "", e);
+            });
   }
 
   private Set<Authorization> getAuthorizations(FirebaseToken auth) {

@@ -8,6 +8,7 @@ import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.ext.auth.User;
 import io.vertx.reactivex.ext.web.handler.sockjs.BridgeEvent;
 import it.vitalegi.rpgboard.be.MainVerticle;
+import it.vitalegi.rpgboard.be.util.UuidUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,23 +61,20 @@ public class WebSocketBridgeListener implements Handler<BridgeEvent> {
     getUser(event.getRawMessage())
         .subscribe(
             user -> {
+              UUID userId = UuidUtil.getUUID(user.principal().getString(MainVerticle.UID));
               String externalUserId = user.principal().getString(MainVerticle.EXTERNAL_UID);
-              log.info("WebSocket > {}", user.principal());
-              if (isAuthenticated(externalUserId)) {
-                // TODO recupero userId a partire da externalUserId e print
-                // logDetails(log::debug, event, true, userId, null, "");
-                logDetails(log::debug, event, true, null, null, "");
-                event.getRawMessage().getJsonObject("headers").put(MainVerticle.UID, "TODO");
+              if (isAuthenticated(userId)) {
                 event
                     .getRawMessage()
                     .getJsonObject("headers")
+                    .put(MainVerticle.UID, userId)
                     .put(MainVerticle.EXTERNAL_UID, externalUserId);
                 event.complete(true);
-
+                logDetails(
+                    log::debug, event, true, userId, null, "externalUserId=" + externalUserId);
               } else {
-                // TODO recupero userId a partire da externalUserId e print
-                // logDetails(log::debug, event, false, userId, null, "");
-                logDetails(log::debug, event, false, null, null, "");
+                logDetails(
+                    log::info, event, false, userId, null, "externalUserId=" + externalUserId);
                 event.complete(false);
               }
             },
@@ -90,21 +88,26 @@ public class WebSocketBridgeListener implements Handler<BridgeEvent> {
     getUser(event.getRawMessage())
         .subscribe(
             user -> {
+              UUID userId = UuidUtil.getUUID(user.principal().getString(MainVerticle.UID));
               String externalUserId = user.principal().getString(MainVerticle.EXTERNAL_UID);
-              if (!isAuthenticated(externalUserId)) {
-                // TODO recupero userId a partire da externalUserId e print
-                logDetails(log::error, event, false, null, null, "User not logged in");
+              if (!isAuthenticated(userId)) {
+                logDetails(
+                    log::info,
+                    event,
+                    false,
+                    userId,
+                    null,
+                    "externalUserId=" + externalUserId + ", user not logged in");
                 event.complete(false);
                 return;
               }
               UUID gameId = getGameId(event);
               if (gameId == null) {
-                // TODO recupero userId a partire da externalUserId e print
                 logDetails(
                     log::info,
                     event,
                     true,
-                    null,
+                    userId,
                     null,
                     "Address not connected to a game, continue");
                 event.complete(true);
@@ -114,8 +117,7 @@ public class WebSocketBridgeListener implements Handler<BridgeEvent> {
                   "Address {} connected to game {}, check if user has permission",
                   getAddress(event),
                   gameId);
-              // TODO recupero userId a partire da externalUserId e print
-              processGameRegistration(event, gameId, null);
+              processGameRegistration(event, gameId, userId);
             },
             e -> {
               log.error("Failed", e);
@@ -190,7 +192,7 @@ public class WebSocketBridgeListener implements Handler<BridgeEvent> {
     }
   }
 
-  protected boolean isAuthenticated(String userId) {
+  protected boolean isAuthenticated(UUID userId) {
     return userId != null;
   }
 
