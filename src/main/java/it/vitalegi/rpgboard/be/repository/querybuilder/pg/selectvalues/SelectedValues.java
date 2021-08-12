@@ -12,13 +12,24 @@ import java.util.stream.Collectors;
 
 public class SelectedValues implements Renderer {
 
+  protected boolean distinct;
   protected List<Renderer> renderers;
 
   public SelectedValues() {
     this.renderers = new ArrayList<>();
   }
 
+  public SelectedValues distinct(boolean distinct) {
+    this.distinct = distinct;
+    return this;
+  }
+
   public SelectedValues all(String alias) {
+    renderers.add(new SelectTableColumnValue(FieldsPicker.all(alias), null));
+    return this;
+  }
+
+  public SelectedValues all() {
     renderers.add(new SelectTableColumnValue(FieldsPicker.all(), null));
     return this;
   }
@@ -78,6 +89,13 @@ public class SelectedValues implements Renderer {
     return renderers.stream()
         .map(r -> r.render(instances))
         .filter(StringUtil::isNotNullOrEmpty)
-        .collect(Collectors.joining(", "));
+        .collect(Collectors.joining(", ", distinctClause(), ""));
+  }
+
+  protected String distinctClause() {
+    if (distinct) {
+      return "DISTINCT ";
+    }
+    return "";
   }
 }

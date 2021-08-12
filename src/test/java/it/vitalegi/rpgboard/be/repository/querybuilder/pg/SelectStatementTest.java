@@ -4,6 +4,7 @@ import io.vertx.junit5.VertxExtension;
 import it.vitalegi.rpgboard.be.repository.querybuilder.pg.fields.FieldsPicker;
 import it.vitalegi.rpgboard.be.repository.querybuilder.pg.from.FromClause;
 import it.vitalegi.rpgboard.be.repository.querybuilder.pg.from.Join;
+import it.vitalegi.rpgboard.be.repository.querybuilder.pg.from.JoinType;
 import it.vitalegi.rpgboard.be.repository.querybuilder.pg.groupby.GroupByClause;
 import it.vitalegi.rpgboard.be.repository.querybuilder.pg.groupby.GroupByTableColumnValue;
 import it.vitalegi.rpgboard.be.repository.querybuilder.pg.selectvalues.SelectedValues;
@@ -61,6 +62,13 @@ public class SelectStatementTest {
   }
 
   @Test
+  void distinctTable() {
+    assertEquals(
+        "SELECT DISTINCT t1.pk1, t1.pk2, t1.field1, t1.field2 FROM table1 as t1;",
+        SelectFactory.init(table1).values(new SelectedValues().all().distinct(true)).build());
+  }
+
+  @Test
   void oneTableOnePlaceholder() {
     assertEquals(
         "SELECT t1.pk1, t1.pk2, t1.field1, t1.field2 FROM table1 as t1 WHERE (t1.pk1=#{pk1});",
@@ -85,10 +93,64 @@ public class SelectStatementTest {
     assertEquals(
         "SELECT t1.pk1, t1.pk2, t1.field1, t1.field2, t2.pk3, t2.pk4, t2.field3, t2.field4 "
             + "FROM table1 as t1 "
-            + "JOIN table2 as t2 ON t1.pk1=t2.pk3;",
+            + "INNER JOIN table2 as t2 ON t1.pk1=t2.pk3;",
         SelectFactory.init(table1, "t1")
             .table(table2, "t2")
             .from(new FromClause("t1").join(new Join("t2").and("t1", "pk1", "t2", "pk3")))
+            .build());
+  }
+
+  @Test
+  void twoTableInnerJoin() {
+    assertEquals(
+        "SELECT t1.pk1, t1.pk2, t1.field1, t1.field2, t2.pk3, t2.pk4, t2.field3, t2.field4 "
+            + "FROM table1 as t1 "
+            + "INNER JOIN table2 as t2 ON t1.pk1=t2.pk3;",
+        SelectFactory.init(table1, "t1")
+            .table(table2, "t2")
+            .from(new FromClause("t1").join(new Join("t2").and("t1", "pk1", "t2", "pk3")))
+            .build());
+  }
+
+  @Test
+  void twoTableLeftJoin() {
+    assertEquals(
+        "SELECT t1.pk1, t1.pk2, t1.field1, t1.field2, t2.pk3, t2.pk4, t2.field3, t2.field4 "
+            + "FROM table1 as t1 "
+            + "LEFT JOIN table2 as t2 ON t1.pk1=t2.pk3;",
+        SelectFactory.init(table1, "t1")
+            .table(table2, "t2")
+            .from(
+                new FromClause("t1")
+                    .join(new Join(JoinType.LEFT_JOIN, "t2").and("t1", "pk1", "t2", "pk3")))
+            .build());
+  }
+
+  @Test
+  void twoTableRightJoin() {
+    assertEquals(
+        "SELECT t1.pk1, t1.pk2, t1.field1, t1.field2, t2.pk3, t2.pk4, t2.field3, t2.field4 "
+            + "FROM table1 as t1 "
+            + "RIGHT JOIN table2 as t2 ON t1.pk1=t2.pk3;",
+        SelectFactory.init(table1, "t1")
+            .table(table2, "t2")
+            .from(
+                new FromClause("t1")
+                    .join(new Join(JoinType.RIGHT_JOIN, "t2").and("t1", "pk1", "t2", "pk3")))
+            .build());
+  }
+
+  @Test
+  void twoTableFullOuterJoin() {
+    assertEquals(
+        "SELECT t1.pk1, t1.pk2, t1.field1, t1.field2, t2.pk3, t2.pk4, t2.field3, t2.field4 "
+            + "FROM table1 as t1 "
+            + "FULL OUTER JOIN table2 as t2 ON t1.pk1=t2.pk3;",
+        SelectFactory.init(table1, "t1")
+            .table(table2, "t2")
+            .from(
+                new FromClause("t1")
+                    .join(new Join(JoinType.FULL_OUTER_JOIN, "t2").and("t1", "pk1", "t2", "pk3")))
             .build());
   }
 
@@ -97,8 +159,8 @@ public class SelectStatementTest {
     assertEquals(
         "SELECT t1.pk1, t1.pk2, t2.pk3, t2.pk4, t2.field4, t3.pk3, t3.pk4, t3.field3 "
             + "FROM table1 as t1 "
-            + "JOIN table2 as t2 ON t1.pk1=t2.pk3 "
-            + "JOIN table2 as t3 ON t2.pk3=t3.pk3 AND t2.pk3=t3.pk4 "
+            + "INNER JOIN table2 as t2 ON t1.pk1=t2.pk3 "
+            + "INNER JOIN table2 as t3 ON t2.pk3=t3.pk3 AND t2.pk3=t3.pk4 "
             + "WHERE (t1.pk1=#{pk1} AND t3.pk3=#{pk3} AND t3.pk4=#{pk4} AND t3.field3=#{field3} AND t3.field4=#{field4});",
         SelectFactory.init(table1, "t1")
             .table(table2, "t2")
@@ -126,7 +188,7 @@ public class SelectStatementTest {
   void twoTableJoinGroupBy() {
     assertEquals(
         "SELECT t1.pk1, COUNT(*) as count1, t2.pk4 "
-            + "FROM table1 as t1 JOIN table2 as t2 ON t1.pk1=t2.pk3 "
+            + "FROM table1 as t1 INNER JOIN table2 as t2 ON t1.pk1=t2.pk3 "
             + "GROUP BY t1.pk1, t2.pk4;",
         SelectFactory.init(table1, "t1")
             .table(table2, "t2")

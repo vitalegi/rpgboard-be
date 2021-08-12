@@ -7,16 +7,29 @@ import io.reactivex.functions.Consumer;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import io.vertx.reactivex.sqlclient.templates.RowMapper;
 import io.vertx.reactivex.sqlclient.templates.SqlTemplate;
+import io.vertx.sqlclient.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class DatabaseProxy<E> {
 
   Logger log = LoggerFactory.getLogger(DatabaseProxy.class);
+
+  protected <T> RowMapper<T> customRowMapper(Function<Row, T> map) {
+    io.vertx.sqlclient.templates.RowMapper<T> baseMapper =
+        new io.vertx.sqlclient.templates.RowMapper<T>() {
+          @Override
+          public T map(Row row) {
+            return map.apply(row);
+          }
+        };
+    return new RowMapper<T>(baseMapper);
+  }
 
   protected abstract RowMapper<E> rowMapper();
 
@@ -35,11 +48,21 @@ public abstract class DatabaseProxy<E> {
     return executeQuery(connection, query, entry).toList();
   }
 
+  protected <T> Single<List<T>> queryList(
+      SqlConnection connection, String query, Map<String, Object> entry, RowMapper<T> mapper) {
+    return executeQuery(connection, query, entry, mapper).toList();
+  }
+
   private Observable<E> executeQuery(
       SqlConnection connection, String query, Map<String, Object> entry) {
+    return executeQuery(connection, query, entry, rowMapper());
+  }
+
+  private <T> Observable<T> executeQuery(
+      SqlConnection connection, String query, Map<String, Object> entry, RowMapper<T> mapper) {
     long start = System.currentTimeMillis();
     return SqlTemplate.forQuery(connection, query)
-        .mapTo(rowMapper())
+        .mapTo(mapper)
         .rxExecute(entry)
         .flatMapObservable(Observable::fromIterable)
         .doOnError(onError(query, entry, start))

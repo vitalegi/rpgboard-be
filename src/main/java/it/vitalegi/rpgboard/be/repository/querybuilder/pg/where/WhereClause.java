@@ -22,6 +22,10 @@ public class WhereClause implements Renderer {
     return new WhereClause(new And(Arrays.asList(clauses)));
   }
 
+  public static WhereClause or(Renderer... clauses) {
+    return new WhereClause(new Or(Arrays.asList(clauses)));
+  }
+
   @Override
   public String render(List<TableInstance> instances) {
     String where = clauses.render(instances);

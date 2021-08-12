@@ -1,6 +1,7 @@
 package it.vitalegi.rpgboard.be.service;
 
 import io.reactivex.Single;
+import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
 import it.vitalegi.rpgboard.be.data.GamePlayerRole;
@@ -81,9 +82,8 @@ public class GameServiceLocal {
     return gameRepository.delete(conn, gameId).singleOrError();
   }
 
-  public Single<List<Game>> getGames(SqlConnection conn) {
-    log.info("getGames");
-    return gameRepository.getAll(conn);
+  public Single<List<JsonObject>> getAvailableGames(SqlConnection conn, UUID userId) {
+    return gameRepository.getAvailableGames(conn, userId);
   }
 
   protected void notNull(Object obj, String msg) {

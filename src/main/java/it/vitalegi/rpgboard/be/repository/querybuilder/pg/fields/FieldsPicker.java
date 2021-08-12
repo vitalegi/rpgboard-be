@@ -18,6 +18,10 @@ public interface FieldsPicker {
     return new Exact(alias, fields);
   }
 
+  public static FieldsPicker exact(String alias, String field) {
+    return new Exact(alias, Collections.singletonList(field));
+  }
+
   public static FieldsPicker exact(List<String> fields) {
     return new Exact(null, fields);
   }
