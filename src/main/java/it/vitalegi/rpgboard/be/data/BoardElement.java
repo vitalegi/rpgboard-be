@@ -22,6 +22,7 @@ public class BoardElement {
   public static final String VISIBILITY_POLICY = "visibility_policy";
   public static final String UPDATE_POLICY = "update_policy";
   public static final String CONFIG = "config";
+  public static final String ENTRY_POSITION = "entry_position";
   public static final String PARENT_ID = "parent_id";
   public static final String USER_ID = "user_id";
   public static final String CREATE_DATE = "create_date";
@@ -35,6 +36,7 @@ public class BoardElement {
               ENTRY_ID,
               BOARD_ID,
               PARENT_ID,
+              ENTRY_POSITION,
               CONFIG,
               UPDATE_POLICY,
               VISIBILITY_POLICY,
@@ -51,6 +53,9 @@ public class BoardElement {
 
   @Column(name = PARENT_ID)
   UUID parentId;
+
+  @Column(name = ENTRY_POSITION)
+  Long entryPosition;
 
   @Column(name = CONFIG)
   JsonObject config;
@@ -74,6 +79,7 @@ public class BoardElement {
       UUID entryId,
       UUID boardId,
       UUID parentId,
+      Long entryPosition,
       JsonObject config,
       String updatePolicy,
       String visibilityPolicy,
@@ -84,6 +90,7 @@ public class BoardElement {
     map.put(ENTRY_ID, entryId);
     map.put(BOARD_ID, boardId);
     map.put(PARENT_ID, parentId);
+    map.put(ENTRY_POSITION, entryPosition);
     map.put(CONFIG, config);
     map.put(UPDATE_POLICY, updatePolicy);
     map.put(VISIBILITY_POLICY, visibilityPolicy);
@@ -99,6 +106,7 @@ public class BoardElement {
         entry.getEntryId(),
         entry.getBoardId(),
         entry.getParentId(),
+        entry.getEntryPosition(),
         entry.getConfig(),
         entry.getUpdatePolicy(),
         entry.getVisibilityPolicy(),
@@ -191,6 +199,14 @@ public class BoardElement {
     this.lastUpdate = lastUpdate;
   }
 
+  public Long getEntryPosition() {
+    return entryPosition;
+  }
+
+  public void setEntryPosition(Long entryPosition) {
+    this.entryPosition = entryPosition;
+  }
+
   @Override
   public String toString() {
     return "BoardElement{"
@@ -200,6 +216,8 @@ public class BoardElement {
         + entryId
         + ", parentId="
         + parentId
+        + ", entryPosition="
+        + entryPosition
         + ", config="
         + config
         + ", updatePolicy='"

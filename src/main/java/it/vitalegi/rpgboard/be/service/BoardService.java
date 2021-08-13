@@ -106,6 +106,7 @@ public class BoardService {
       SqlConnection conn,
       UUID boardId,
       UUID parentId,
+      Long entryPosition,
       JsonObject config,
       String updatePolicy,
       String visibilityPolicy,
@@ -119,6 +120,7 @@ public class BoardService {
     BoardElement entry = new BoardElement();
     entry.setBoardId(boardId);
     entry.setParentId(parentId);
+    entry.setEntryPosition(entryPosition);
     entry.setConfig(config);
     entry.setUpdatePolicy(updatePolicy);
     entry.setVisibilityPolicy(visibilityPolicy);
@@ -128,6 +130,13 @@ public class BoardService {
     entry.setLastUpdate(now);
 
     return boardElementRepository.add(conn, entry).singleOrError();
+  }
+
+  public Single<BoardElement> deleteBoardElement(SqlConnection conn, UUID entryId, UUID userId) {
+    notNull(entryId, "entryId null");
+    notNull(userId, "userId null");
+
+    return boardElementRepository.delete(conn, entryId).singleOrError();
   }
 
   protected void notNull(Object obj, String msg) {

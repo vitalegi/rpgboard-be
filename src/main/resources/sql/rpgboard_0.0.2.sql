@@ -5,6 +5,7 @@ CREATE TABLE RPG_Board_Element (
     update_policy VARCHAR(40),
     config json,
     parent_id uuid,
+    entry_position integer,
     user_id uuid,
     create_date timestamptz NOT NULL,
     last_update timestamptz NOT NULL

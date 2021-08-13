@@ -68,6 +68,7 @@ public class GameVerticle extends AbstractVerticle {
       eventBus.consumer("game.board.getAll", this::getAllBoards);
       eventBus.consumer("game.boardelement.add", this::addBoardElement);
       eventBus.consumer("game.boardelement.getAll", this::getBoardElements);
+      eventBus.consumer("game.boardelement.delete", this::deleteBoardElement);
       log.info("Start done");
       startPromise.complete();
     } catch (Exception e) {
@@ -181,6 +182,7 @@ public class GameVerticle extends AbstractVerticle {
           JsonObject config = body.getJsonObject("config");
           String updatePolicy = body.getString("updatePolicy");
           String visibilityPolicy = body.getString("visibilityPolicy");
+          Long entryPosition = body.getLong("entryPosition", 0L);
 
           return Single.just(msg)
               .flatMap(
@@ -189,6 +191,7 @@ public class GameVerticle extends AbstractVerticle {
                           conn,
                           boardId,
                           parentId,
+                          entryPosition,
                           config,
                           updatePolicy,
                           visibilityPolicy,
@@ -205,6 +208,18 @@ public class GameVerticle extends AbstractVerticle {
           UUID boardId = UuidUtil.getUUID(body.getString("boardId"));
           return Single.just(msg)
               .flatMap(m -> boardService.getBoardElements(conn, boardId))
+              .toMaybe();
+        })
+        .subscribe(observer);
+  }
+
+  protected void deleteBoardElement(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "deleteBoardElement");
+    JsonObject body = msg.body();
+    tx(conn -> {
+          UUID entryId = UuidUtil.getUUID(body.getString("entryId"));
+          return Single.just(msg)
+              .flatMap(m -> boardService.deleteBoardElement(conn, entryId, getUserId(msg)))
               .toMaybe();
         })
         .subscribe(observer);

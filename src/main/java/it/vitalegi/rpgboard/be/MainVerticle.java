@@ -114,6 +114,7 @@ public class MainVerticle extends AbstractVerticle {
     // board's elements
     router.post("/api/board/:boardId/element").handler(toEventBus("game.boardelement.add"));
     router.get("/api/board/:boardId/elements").handler(toEventBus("game.boardelement.getAll"));
+    router.delete("/api/board/:boardId/element/:entryId").handler(toEventBus("game.boardelement.delete"));
 
     log.info("Deployed routes");
     for (Route route : router.getRoutes()) {
