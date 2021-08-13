@@ -13,6 +13,7 @@ import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.pgclient.PgPool;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
+import it.vitalegi.rpgboard.be.service.GamePlayerRoleService;
 import it.vitalegi.rpgboard.be.service.GamePlayerRoleServiceLocal;
 import it.vitalegi.rpgboard.be.service.GameService;
 import it.vitalegi.rpgboard.be.util.JsonObserver;
@@ -27,6 +28,7 @@ public class GameVerticle extends AbstractVerticle {
   static Logger log = LoggerFactory.getLogger(GameVerticle.class);
   protected GameService gameService;
   protected GamePlayerRoleServiceLocal gamePlayerRoleServiceLocal;
+  protected GamePlayerRoleService gamePlayerRoleService;
   protected PgPool client;
 
   @Override
@@ -40,8 +42,11 @@ public class GameVerticle extends AbstractVerticle {
       BeanContext beanContext = BeanContext.run();
       beanContext.registerSingleton(config());
       beanContext.registerSingleton(vertx);
+      beanContext.registerSingleton(vertx.eventBus());
 
+      beanContext.getAllBeanDefinitions().forEach(bean -> log.info("Bean: {}", bean));
       gameService = beanContext.getBean(GameService.class);
+      gamePlayerRoleService = beanContext.getBean(GamePlayerRoleService.class);
       gamePlayerRoleServiceLocal = beanContext.getBean(GamePlayerRoleServiceLocal.class);
       if (!config().getString("DATABASE_URL", "").equals("")) {
         beanContext.registerSingleton(getClient(vertx, config()));
@@ -50,8 +55,6 @@ public class GameVerticle extends AbstractVerticle {
         log.info("No database provided, skip configuration.");
       }
 
-      eventBus.consumer("external.incoming.game.add", this::addGame);
-      eventBus.consumer("external.incoming.game.getAll", this::getGames);
       eventBus.consumer("external.incoming.game.getById", this::getGame);
       eventBus.consumer("game.add", this::addGame);
       eventBus.consumer("game.get", this::getGame);
@@ -59,7 +62,8 @@ public class GameVerticle extends AbstractVerticle {
       eventBus.consumer("game.getAll", this::getGames);
       eventBus.consumer("game.update", this::updateGame);
       eventBus.consumer("game.delete", this::deleteGame);
-      eventBus.consumer("game.userRoles.get", this::getUserRoles);
+      eventBus.consumer("game.players.enter", this::enterGame);
+      eventBus.consumer("game.players.hasGrants", this::hasUserGrants);
       log.info("Start done");
       startPromise.complete();
     } catch (Exception e) {
@@ -125,15 +129,27 @@ public class GameVerticle extends AbstractVerticle {
     cx(conn -> gameService.getGames(conn, getUserId(msg)).toMaybe()).subscribe(observer);
   }
 
-  protected void getUserRoles(Message<JsonObject> msg) {
-    JsonObserver observer = JsonObserver.init(msg, "getUserRoles");
+  protected void enterGame(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "enterGame");
     JsonObject body = msg.body();
     tx(conn -> {
           UUID gameId = UuidUtil.getUUID(body.getString("gameId"));
-          UUID userId = UuidUtil.getUUID(body.getString("userId"));
+          return gamePlayerRoleService
+              .enterGame(conn, gameId, getUserId(msg))
+              .map(JsonObject::mapFrom)
+              .toMaybe();
+        })
+        .subscribe(observer);
+  }
 
-          return Single.just(msg)
-              .flatMap(m -> gamePlayerRoleServiceLocal.getUserRoles(conn, gameId, userId))
+  protected void hasUserGrants(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "hasUserGrants");
+    JsonObject body = msg.body();
+    tx(conn -> {
+          UUID gameId = UuidUtil.getUUID(body.getString("gameId"));
+          return gamePlayerRoleService
+              .hasUserGrants(conn, gameId, getUserId(msg))
+              .map(JsonObject::mapFrom)
               .toMaybe();
         })
         .subscribe(observer);

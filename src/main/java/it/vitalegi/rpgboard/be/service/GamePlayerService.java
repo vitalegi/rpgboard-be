@@ -1,9 +1,12 @@
 package it.vitalegi.rpgboard.be.service;
 
 import io.reactivex.Single;
+import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.GamePlayer;
+import it.vitalegi.rpgboard.be.model.AllowAction;
 import it.vitalegi.rpgboard.be.repository.GamePlayerRepository;
+import it.vitalegi.rpgboard.be.util.UuidUtil;
 import it.vitalegi.rpgboard.be.util.VertxUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +19,8 @@ import java.util.UUID;
 @Singleton
 public class GamePlayerService {
   @Inject protected GamePlayerRepository gamePlayerRepository;
+  @Inject GamePlayerRoleServiceLocal gamePlayerRoleServiceLocal;
+
   Logger log = LoggerFactory.getLogger(GamePlayerService.class);
 
   public Single<GamePlayer> addGamePlayer(SqlConnection conn, UUID gameId, UUID userId) {

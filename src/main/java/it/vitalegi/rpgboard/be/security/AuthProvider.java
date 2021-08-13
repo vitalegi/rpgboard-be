@@ -44,10 +44,10 @@ public abstract class AuthProvider implements AuthenticationHandler {
               if (e instanceof InvalidTokenException) {
                 log.error("Invalid login, token {}: {}", token, e.getMessage());
                 ctx.fail(401, new IllegalStateException("Unauthorized request"));
-                return;
+              } else {
+                log.error("Generic error, token {}: {}", token, e.getMessage());
+                ctx.fail(500, new IllegalStateException("Internal Server Error"));
               }
-              log.error("Generic error, token {}: {}", token, e.getMessage());
-              ctx.fail(500, new IllegalStateException("Internal Server Error"));
             });
   }
 
@@ -85,7 +85,6 @@ public abstract class AuthProvider implements AuthenticationHandler {
         .switchIfEmpty(Single.just(""))
         .map(
             uuid -> {
-              log.info("Recuperato {}", uuid);
               user.principal().put(MainVerticle.UID, uuid);
               return user;
             });

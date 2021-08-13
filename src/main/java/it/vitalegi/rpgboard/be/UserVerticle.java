@@ -71,7 +71,6 @@ public class UserVerticle extends AbstractVerticle {
     JsonObserver observer = JsonObserver.init(msg, "findByExternalUserId");
     JsonObject body = msg.body();
     tx(conn -> {
-          log.info("Start processing {}", body.encodePrettily());
           String externalUserId = body.getString("externalUserId");
           return Single.just(msg)
               .flatMapMaybe(m -> userServiceLocal.findByExternalUserId(conn, externalUserId))
@@ -79,11 +78,6 @@ public class UserVerticle extends AbstractVerticle {
                   e -> {
                     log.error("error on user verticle", e);
                     return null;
-                  })
-              .map(
-                  u -> {
-                    log.info("Utente recuperato nel verticle");
-                    return u;
                   });
         })
         .subscribe(observer);

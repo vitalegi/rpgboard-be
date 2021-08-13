@@ -37,7 +37,7 @@ public class UserServiceLocal {
     notNull(externalUserId, "externalUserId null");
     return Maybe.just(externalUserId)
         .flatMap(id -> userRepository.findByExternalUserId(conn, externalUserId))
-        .map(VertxUtil.logEntry("user found", User::toString));
+        .map(VertxUtil.debug("user found", User::toString));
   }
 
   protected void notNull(Object obj, String msg) {

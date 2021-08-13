@@ -4,10 +4,11 @@ import io.reactivex.Single;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.bridge.BridgeEventType;
-import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.ext.auth.User;
 import io.vertx.reactivex.ext.web.handler.sockjs.BridgeEvent;
 import it.vitalegi.rpgboard.be.MainVerticle;
+import it.vitalegi.rpgboard.be.util.EventBusWrapper;
+import it.vitalegi.rpgboard.be.util.TopicUtil;
 import it.vitalegi.rpgboard.be.util.UuidUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +24,8 @@ import java.util.function.BiConsumer;
 public class WebSocketBridgeListener implements Handler<BridgeEvent> {
   Logger log = LoggerFactory.getLogger(this.getClass());
   @Inject AuthProvider authProvider;
-  @Inject EventBus eventBus;
+  @Inject EventBusWrapper eventBus;
+  @Inject TopicUtil topicUtil;
 
   @Override
   public void handle(BridgeEvent event) {
@@ -37,7 +39,7 @@ public class WebSocketBridgeListener implements Handler<BridgeEvent> {
         return;
       }
       if (BridgeEventType.REGISTER == event.type()) {
-        processRegistration(event);
+        processTopicRegistration(event);
         return;
       }
       processGenericRequest(event);
@@ -57,9 +59,9 @@ public class WebSocketBridgeListener implements Handler<BridgeEvent> {
     event.complete(true);
   }
 
-  protected void processIncomingMessage(BridgeEvent event) {
-    getUser(event.getRawMessage())
-        .subscribe(
+  protected Single<Boolean> processAuth(BridgeEvent event) {
+    return getUser(event)
+        .map(
             user -> {
               UUID userId = UuidUtil.getUUID(user.principal().getString(MainVerticle.UID));
               String externalUserId = user.principal().getString(MainVerticle.EXTERNAL_UID);
@@ -69,47 +71,33 @@ public class WebSocketBridgeListener implements Handler<BridgeEvent> {
                     .getJsonObject("headers")
                     .put(MainVerticle.UID, userId)
                     .put(MainVerticle.EXTERNAL_UID, externalUserId);
-                event.complete(true);
                 logDetails(
                     log::debug, event, true, userId, null, "externalUserId=" + externalUserId);
+                return true;
               } else {
                 logDetails(
                     log::info, event, false, userId, null, "externalUserId=" + externalUserId);
-                event.complete(false);
+                return false;
               }
-            },
-            e -> {
-              log.error("Failed", e);
-              event.complete(false);
             });
   }
 
-  protected void processRegistration(BridgeEvent event) {
-    getUser(event.getRawMessage())
+  protected void processIncomingMessage(BridgeEvent event) {
+    processAuth(event).subscribe(event::complete);
+  }
+
+  protected void processTopicRegistration(BridgeEvent event) {
+    processAuth(event)
         .subscribe(
-            user -> {
-              UUID userId = UuidUtil.getUUID(user.principal().getString(MainVerticle.UID));
-              String externalUserId = user.principal().getString(MainVerticle.EXTERNAL_UID);
-              if (!isAuthenticated(userId)) {
-                logDetails(
-                    log::info,
-                    event,
-                    false,
-                    userId,
-                    null,
-                    "externalUserId=" + externalUserId + ", user not logged in");
+            accept -> {
+              if (!accept) {
+                log.info("Not registered");
                 event.complete(false);
                 return;
               }
-              UUID gameId = getGameId(event);
+              UUID gameId = topicUtil.getGameId(getAddress(event));
               if (gameId == null) {
-                logDetails(
-                    log::info,
-                    event,
-                    true,
-                    userId,
-                    null,
-                    "Address not connected to a game, continue");
+                log.debug("Address {} not connected to a game, continue", getAddress(event));
                 event.complete(true);
                 return;
               }
@@ -117,11 +105,12 @@ public class WebSocketBridgeListener implements Handler<BridgeEvent> {
                   "Address {} connected to game {}, check if user has permission",
                   getAddress(event),
                   gameId);
-              processGameRegistration(event, gameId, userId);
-            },
-            e -> {
-              log.error("Failed", e);
-              event.complete(false);
+
+              UUID userId =
+                  UuidUtil.getUUID(
+                      event.getRawMessage().getJsonObject("headers").getString(MainVerticle.UID));
+
+              processGameTopicRegistration(event, gameId, userId);
             });
   }
 
@@ -130,16 +119,17 @@ public class WebSocketBridgeListener implements Handler<BridgeEvent> {
     event.complete(true);
   }
 
-  protected void processGameRegistration(BridgeEvent event, UUID gameId, UUID userId) {
+  protected void processGameTopicRegistration(BridgeEvent event, UUID gameId, UUID userId) {
+    log.debug("game registration gameId={} userId={}", gameId, userId);
     eventBus
-        .rxRequest("game.userRoles.get", new JsonObject())
-        .map(msg -> (JsonObject) msg.body())
+        .hasGrants(gameId, userId)
         .subscribe(
-            roles -> {
-              log.info("RECEIVED: {}", roles);
-              boolean hasRoles = roles != null && !roles.isEmpty();
-              logDetails(log::info, event, hasRoles, userId, gameId, "GamePlayerRole check");
-              event.complete(hasRoles);
+            obj -> {
+              logDetails(log::debug, event, true, userId, gameId, "GamePlayerRole check");
+              event.complete(obj.getBoolean("allowed"));
+              if (topicUtil.isGamePlayerTopic(getAddress(event))) {
+                eventBus.publishGamePlayerJoins(gameId, userId);
+              }
             },
             e -> {
               logDetails(log::error, event, false, userId, gameId, e.getMessage(), e);
@@ -181,15 +171,13 @@ public class WebSocketBridgeListener implements Handler<BridgeEvent> {
         values.toArray());
   }
 
-  protected Single<User> getUser(JsonObject obj) {
-    String token = null;
-    try {
-      token = obj.getJsonObject("headers", new JsonObject()).getString("Authorization", null);
-      return authProvider.getUser(token);
-    } catch (Exception e) {
-      log.error("Error validating the request for token {}, {}", token, e.getMessage());
-      return null;
-    }
+  protected Single<User> getUser(BridgeEvent event) {
+    String token =
+        event
+            .getRawMessage()
+            .getJsonObject("headers", new JsonObject())
+            .getString("Authorization", null);
+    return authProvider.getUser(token);
   }
 
   protected boolean isAuthenticated(UUID userId) {
@@ -199,22 +187,6 @@ public class WebSocketBridgeListener implements Handler<BridgeEvent> {
   protected String getAddress(BridgeEvent event) {
     if (event != null && event.getRawMessage() != null) {
       return event.getRawMessage().getString("address");
-    }
-    return null;
-  }
-
-  protected UUID getGameId(BridgeEvent event) {
-    String address = getAddress(event);
-    if (address == null) {
-      return null;
-    }
-    if (address.startsWith("external.outgoing.game.")) {
-      String subaddress = address.substring("external.outgoing.game.".length());
-      String gameId = subaddress;
-      if (subaddress.contains(".")) {
-        gameId = subaddress.substring(0, subaddress.indexOf("."));
-      }
-      return UUID.fromString(gameId);
     }
     return null;
   }

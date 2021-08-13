@@ -38,6 +38,10 @@ public class GamePlayerRoleServiceLocal {
     return gamePlayerRoleRepository.getUserRoles(conn, gameId, userId);
   }
 
+  public Single<Boolean> hasUserRoles(SqlConnection conn, UUID gameId, UUID userId) {
+    return getUserRoles(conn, gameId, userId).map(roles -> !roles.isEmpty());
+  }
+
   public Single<Boolean> checkUserRole(SqlConnection conn, UUID gameId, UUID userId, String role) {
     return hasUserRole(conn, gameId, userId, role)
         .map(

@@ -66,21 +66,26 @@ public class FirebaseAuthProvider extends AuthProvider {
             (next) -> {
               try {
                 FirebaseAuth instance = FirebaseAuth.getInstance();
-                next.complete(instance.verifyIdToken(token));
+                FirebaseToken user = instance.verifyIdToken(token);
+                next.complete(user);
               } catch (FirebaseAuthException e) {
                 throw new InvalidTokenException(e);
               }
             })
         .toSingle()
         .flatMap(
-            msg -> {
-              FirebaseToken auth = (FirebaseToken) msg;
+            obj -> {
+              FirebaseToken auth = (FirebaseToken) obj;
               User user = User.fromName(auth.getEmail());
               user.principal().put(MainVerticle.EXTERNAL_UID, auth.getUid());
               user.principal().put("mail", auth.getEmail());
               user.authorizations().add("firebaseJwt", getAuthorizations(auth));
               return fillUser(user, auth.getUid());
             })
+        .doOnSuccess(
+            user ->
+                LogUtil.success(
+                    "firebase.validate", start, user.principal().getString(MainVerticle.UID), null))
         .doOnError(
             e -> {
               LogUtil.failure("firebase.validate", start, "unknown", "", e);
