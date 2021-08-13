@@ -103,7 +103,7 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/api/game").handler(eventbusWithPayload("game.add"));
     router.get("/api/game/:gameId").handler(this::getGame);
     router.delete("/api/game/:gameId").handler(this::deleteGame);
-    router.get("/api/games").handler(eventbusWithPayload("game.getAll"));
+    router.get("/api/games").handler(eventbusWithPayload("game.getAvailableGames"));
     router.post("/api/user/registration").handler(eventbusWithPayload("user.registration"));
 
     log.info("Deployed routes");

@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Singleton
 public class UserServiceLocal {
@@ -38,6 +39,10 @@ public class UserServiceLocal {
     return Maybe.just(externalUserId)
         .flatMap(id -> userRepository.findByExternalUserId(conn, externalUserId))
         .map(VertxUtil.debug("user found", User::toString));
+  }
+
+  public Single<User> getUser(SqlConnection conn, UUID userId) {
+    return userRepository.getById(conn, userId).singleOrError();
   }
 
   protected void notNull(Object obj, String msg) {

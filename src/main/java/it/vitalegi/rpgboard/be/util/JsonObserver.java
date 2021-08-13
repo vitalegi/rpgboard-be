@@ -36,9 +36,13 @@ public class JsonObserver implements MaybeObserver<Object> {
     LogUtil.success(methodName, startTime, getUserId(msg), null);
     if (entry instanceof List) {
       msg.reply(VertxUtil.jsonMap((List<?>) entry));
-    } else {
-      msg.reply(JsonObject.mapFrom(entry));
+      return;
     }
+    if (entry instanceof Boolean) {
+      msg.reply(entry);
+      return;
+    }
+    msg.reply(JsonObject.mapFrom(entry));
   }
 
   @Override

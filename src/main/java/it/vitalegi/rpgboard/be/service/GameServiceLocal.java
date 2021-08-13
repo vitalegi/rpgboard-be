@@ -2,9 +2,10 @@ package it.vitalegi.rpgboard.be.service;
 
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
+import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
-import it.vitalegi.rpgboard.be.data.GamePlayerRole;
+import it.vitalegi.rpgboard.be.mapper.GameMapper;
 import it.vitalegi.rpgboard.be.repository.GameRepository;
 import it.vitalegi.rpgboard.be.roles.GameRole;
 import it.vitalegi.rpgboard.be.util.VertxUtil;
@@ -22,7 +23,8 @@ public class GameServiceLocal {
   @Inject protected GameRepository gameRepository;
   @Inject protected GamePlayerService gamePlayerService;
   @Inject protected GamePlayerRoleServiceLocal gamePlayerRoleServiceLocal;
-
+  @Inject protected UserServiceLocal userServiceLocal;
+  @Inject protected EventBus eventBus;
   Logger log = LoggerFactory.getLogger(GameServiceLocal.class);
 
   public Single<Game> addGame(
@@ -62,11 +64,35 @@ public class GameServiceLocal {
         .map(VertxUtil.debug("creation done"));
   }
 
-  public Single<GamePlayerRole> joinGame(SqlConnection conn, UUID userId, UUID gameId) {
+  public Single<Boolean> joinGame(SqlConnection conn, UUID userId, UUID gameId) {
+    return gamePlayerRoleServiceLocal
+        .hasUserRole(conn, gameId, userId, GameRole.PLAYER)
+        .flatMap(
+            hasRole -> {
+              if (hasRole) {
+                return Single.just(true);
+              }
+              return register(conn, userId, gameId);
+            })
+        .flatMap(
+            join -> {
+              if (!join) {
+                return Single.just(false);
+              }
+              return GameMapper.mapGamePlayer(
+                      userServiceLocal.getUser(conn, userId),
+                      gamePlayerRoleServiceLocal.getUserRoles(conn, gameId, userId))
+                  .map(user -> eventBus.publish("external.outgoing.game." + gameId, user))
+                  .map(user -> true);
+            });
+  }
+
+  public Single<Boolean> register(SqlConnection conn, UUID userId, UUID gameId) {
     return Single.just(gameId)
         .flatMap(g -> gamePlayerService.addGamePlayer(conn, gameId, userId))
         .flatMap(g -> gamePlayerRoleServiceLocal.addUserRole(conn, gameId, userId, GameRole.PLAYER))
-        .map(VertxUtil.logEntry("user " + userId + " joined " + gameId));
+        .map(VertxUtil.logEntry("user " + userId + " joined " + gameId))
+        .map(gpr -> true);
   }
 
   public Single<Game> getGame(SqlConnection conn, UUID gameId) {

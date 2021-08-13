@@ -7,7 +7,7 @@ import io.vertx.ext.bridge.BridgeEventType;
 import io.vertx.reactivex.ext.auth.User;
 import io.vertx.reactivex.ext.web.handler.sockjs.BridgeEvent;
 import it.vitalegi.rpgboard.be.MainVerticle;
-import it.vitalegi.rpgboard.be.util.EventBusWrapper;
+import it.vitalegi.rpgboard.be.service.EventBusService;
 import it.vitalegi.rpgboard.be.util.TopicUtil;
 import it.vitalegi.rpgboard.be.util.UuidUtil;
 import org.slf4j.Logger;
@@ -24,7 +24,8 @@ import java.util.function.BiConsumer;
 public class WebSocketBridgeListener implements Handler<BridgeEvent> {
   Logger log = LoggerFactory.getLogger(this.getClass());
   @Inject AuthProvider authProvider;
-  @Inject EventBusWrapper eventBus;
+  @Inject
+  EventBusService eventBus;
   @Inject TopicUtil topicUtil;
 
   @Override
@@ -122,14 +123,11 @@ public class WebSocketBridgeListener implements Handler<BridgeEvent> {
   protected void processGameTopicRegistration(BridgeEvent event, UUID gameId, UUID userId) {
     log.debug("game registration gameId={} userId={}", gameId, userId);
     eventBus
-        .hasGrants(gameId, userId)
+        .joinGame(gameId, userId)
         .subscribe(
             obj -> {
               logDetails(log::debug, event, true, userId, gameId, "GamePlayerRole check");
-              event.complete(obj.getBoolean("allowed"));
-              if (topicUtil.isGamePlayerTopic(getAddress(event))) {
-                eventBus.publishGamePlayerJoins(gameId, userId);
-              }
+              event.complete(obj);
             },
             e -> {
               logDetails(log::error, event, false, userId, gameId, e.getMessage(), e);

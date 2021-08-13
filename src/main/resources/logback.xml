@@ -7,7 +7,6 @@
     </appender>
 
     <logger name="it.vitalegi" level="INFO"/>
-    <logger name="it.vitalegi.rpgboard.be.service.GamePlayerRoleServiceLocal" level="DEBUG"/>
     <logger name="io" level="INFO"/>
     <logger name="io.netty" level="INFO"/>
     <logger name="javax.net" level="DEBUG"/>

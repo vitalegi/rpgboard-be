@@ -37,7 +37,15 @@ public class VertxUtil {
 
   public static <E> JsonArray jsonMap(List<E> list) {
     JsonArray jsonArr = new JsonArray();
-    list.stream().map(JsonObject::mapFrom).forEach(jsonArr::add);
+    list.stream()
+        .map(
+            e -> {
+              if (e instanceof JsonObject) {
+                return JsonObject.mapFrom(e);
+              }
+              return e;
+            })
+        .forEach(jsonArr::add);
     return jsonArr;
   }
 

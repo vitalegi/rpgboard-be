@@ -36,7 +36,7 @@ public class GameService {
         .flatMap(r -> gameServiceLocal.getGame(conn, gameId));
   }
 
-  public Single<GamePlayerRole> joinGame(SqlConnection conn, UUID userId, UUID gameId) {
+  public Single<Boolean> joinGame(SqlConnection conn, UUID userId, UUID gameId) {
     return gameServiceLocal.joinGame(conn, userId, gameId);
   }
 
@@ -50,7 +50,7 @@ public class GameService {
         .flatMap(r -> gameServiceLocal.deleteGame(conn, userId, gameId));
   }
 
-  public Single<List<JsonObject>> getGames(SqlConnection conn, UUID userId) {
+  public Single<List<JsonObject>> getAvailableGames(SqlConnection conn, UUID userId) {
     return gameServiceLocal.getAvailableGames(conn, userId);
   }
 
