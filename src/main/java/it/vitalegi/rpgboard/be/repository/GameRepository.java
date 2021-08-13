@@ -39,29 +39,31 @@ public class GameRepository extends AbstractSinglePkCrudRepository<Game, UUID> {
     Map<String, Object> entry = new HashMap<>();
     entry.put(GamePlayerRole.USER_ID, userId);
 
-    return queryList(
-        connection,
-        SelectFactory.init(Game.BUILDER, "g")
-            .table(GamePlayerRole.BUILDER, "gpr")
-            .values(new SelectedValues().distinct(true).all("g"))
-            .from(
-                new FromClause("g")
-                    .join(
-                        new Join(JoinType.LEFT_JOIN, "gpr")
-                            .and("g", Game.GAME_ID, "gpr", GamePlayerRole.GAME_ID)))
-            .where(
-                WhereClause.or(
-                    // user is member of the game
-                    new EqualsPlaceholder(FieldsPicker.exact("gpr", GamePlayerRole.USER_ID)),
-                    // game is public
-                    new EqualsStringValue(
-                        FieldsPicker.exact("g", Game.VISIBILITY_POLICY), VisibilityPolicy.PUBLIC)))
-            .build(),
-        entry,
-        customRowMapper(
-            row -> {
-              Game game = Mappers.GAME.getDelegate().map(row);
-              return JsonObject.mapFrom(game);
-            }));
+    return executeQuery(
+            connection,
+            SelectFactory.init(Game.BUILDER, "g")
+                .table(GamePlayerRole.BUILDER, "gpr")
+                .values(new SelectedValues().distinct(true).all("g"))
+                .from(
+                    new FromClause("g")
+                        .join(
+                            new Join(JoinType.LEFT_JOIN, "gpr")
+                                .and("g", Game.GAME_ID, "gpr", GamePlayerRole.GAME_ID)))
+                .where(
+                    WhereClause.or(
+                        // user is member of the game
+                        new EqualsPlaceholder(FieldsPicker.exact("gpr", GamePlayerRole.USER_ID)),
+                        // game is public
+                        new EqualsStringValue(
+                            FieldsPicker.exact("g", Game.VISIBILITY_POLICY),
+                            VisibilityPolicy.PUBLIC)))
+                .build(),
+            entry,
+            customRowMapper(
+                row -> {
+                  Game game = Mappers.GAME.getDelegate().map(row);
+                  return JsonObject.mapFrom(game);
+                }))
+        .toList();
   }
 }

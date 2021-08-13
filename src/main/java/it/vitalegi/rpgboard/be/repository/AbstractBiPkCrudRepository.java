@@ -32,7 +32,7 @@ public abstract class AbstractBiPkCrudRepository<E, P1, P2> extends AbstractCrud
   }
 
   public Observable<E> delete(SqlConnection connection, P1 pk1, P2 pk2) {
-    return updateSingle(
+    return executeUpdate(
         connection,
         DeleteFactory.init(table)
             .where(
@@ -42,7 +42,7 @@ public abstract class AbstractBiPkCrudRepository<E, P1, P2> extends AbstractCrud
   }
 
   public Observable<E> getById(SqlConnection connection, P1 pk1, P2 pk2) {
-    return querySingle(
+    return executeQuery(
         connection,
         SelectFactory.init(table)
             .where(

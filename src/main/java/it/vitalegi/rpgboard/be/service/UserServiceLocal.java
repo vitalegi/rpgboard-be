@@ -42,7 +42,7 @@ public class UserServiceLocal {
   }
 
   public Single<User> getUser(SqlConnection conn, UUID userId) {
-    return userRepository.getById(conn, userId).singleOrError();
+    return userRepository.getById(conn, userId);
   }
 
   protected void notNull(Object obj, String msg) {

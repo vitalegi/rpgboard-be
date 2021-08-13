@@ -13,6 +13,7 @@ import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.pgclient.PgPool;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
+import it.vitalegi.rpgboard.be.service.BoardService;
 import it.vitalegi.rpgboard.be.service.GamePlayerRoleServiceLocal;
 import it.vitalegi.rpgboard.be.service.GameService;
 import it.vitalegi.rpgboard.be.util.JsonObserver;
@@ -27,6 +28,7 @@ public class GameVerticle extends AbstractVerticle {
   static Logger log = LoggerFactory.getLogger(GameVerticle.class);
   protected GameService gameService;
   protected GamePlayerRoleServiceLocal gamePlayerRoleServiceLocal;
+  protected BoardService boardService;
   protected PgPool client;
 
   @Override
@@ -45,6 +47,8 @@ public class GameVerticle extends AbstractVerticle {
       beanContext.getAllBeanDefinitions().forEach(bean -> log.info("Bean: {}", bean));
       gameService = beanContext.getBean(GameService.class);
       gamePlayerRoleServiceLocal = beanContext.getBean(GamePlayerRoleServiceLocal.class);
+      boardService = beanContext.getBean(BoardService.class);
+
       if (!config().getString("DATABASE_URL", "").equals("")) {
         beanContext.registerSingleton(getClient(vertx, config()));
         client = beanContext.getBean(PgPool.class);
@@ -59,6 +63,7 @@ public class GameVerticle extends AbstractVerticle {
       eventBus.consumer("game.getAvailableGames", this::getAvailableGames);
       eventBus.consumer("game.update", this::updateGame);
       eventBus.consumer("game.delete", this::deleteGame);
+      eventBus.consumer("game.board.add", this::addBoard);
       log.info("Start done");
       startPromise.complete();
     } catch (Exception e) {
@@ -122,6 +127,25 @@ public class GameVerticle extends AbstractVerticle {
   protected void getAvailableGames(Message<JsonObject> msg) {
     JsonObserver observer = JsonObserver.init(msg, "getGames");
     cx(conn -> gameService.getAvailableGames(conn, getUserId(msg)).toMaybe()).subscribe(observer);
+  }
+
+  protected void addBoard(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "addBoard");
+    JsonObject body = msg.body();
+    tx(conn -> {
+          String name = body.getString("name");
+          UUID gameId = UuidUtil.getUUID(body.getString("gameId"));
+          String visibilityPolicy = body.getString("visibilityPolicy");
+          Boolean active = body.getBoolean("active");
+
+          return Single.just(msg)
+              .flatMap(
+                  m ->
+                      boardService.addBoard(
+                          conn, gameId, getUserId(msg), name, visibilityPolicy, active))
+              .toMaybe();
+        })
+        .subscribe(observer);
   }
 
   protected <E> Function<E, E> notNull(Function<E, Object> extractor, String field) {

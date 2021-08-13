@@ -105,6 +105,7 @@ public class MainVerticle extends AbstractVerticle {
     router.delete("/api/game/:gameId").handler(this::deleteGame);
     router.get("/api/games").handler(eventbusWithPayload("game.getAvailableGames"));
     router.post("/api/user/registration").handler(eventbusWithPayload("user.registration"));
+    router.post("/api/game/:gameId/board").handler(this::addBoard);
 
     log.info("Deployed routes");
     for (Route route : router.getRoutes()) {
@@ -148,7 +149,6 @@ public class MainVerticle extends AbstractVerticle {
                         new JsonArray()
                             .add("ENV")
                             .add("PORT")
-                            // .add("JDBC_DATABASE_URL")
                             .add("DATABASE_URL")
                             .add("FIREBASE_PRIVATE_KEY")));
 
@@ -220,6 +220,16 @@ public class MainVerticle extends AbstractVerticle {
     vertx
         .eventBus()
         .request("game.delete", message, deliveryOptions(ctx), reply -> handleResponse(ctx, reply));
+  }
+
+  protected void addBoard(RoutingContext ctx) {
+    vertx
+        .eventBus()
+        .request(
+            "game.board.add",
+            ctx.getBodyAsJson().put("gameId", ctx.pathParam("gameId")),
+            deliveryOptions(ctx),
+            reply -> handleResponse(ctx, reply));
   }
 
   private SockJSBridgeOptions getBridgeOptions() {

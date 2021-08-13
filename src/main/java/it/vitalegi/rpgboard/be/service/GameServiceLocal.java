@@ -98,7 +98,7 @@ public class GameServiceLocal {
   }
 
   public Single<Game> getGame(SqlConnection conn, UUID gameId) {
-    return Single.just(gameId).flatMap(id -> gameRepository.getById(conn, gameId).singleOrError());
+    return Single.just(gameId).flatMap(id -> gameRepository.getById(conn, gameId));
   }
 
   public Single<Game> updateGame(SqlConnection conn, Game game) {

@@ -33,32 +33,12 @@ public abstract class DatabaseProxy<E> {
 
   protected abstract RowMapper<E> rowMapper();
 
-  protected Observable<E> updateSingle(
-      SqlConnection connection, String query, Map<String, Object> entry) {
-    return executeUpdate(connection, query, entry);
-  }
-
-  protected Observable<E> querySingle(
-      SqlConnection connection, String query, Map<String, Object> entry) {
-    return executeQuery(connection, query, entry);
-  }
-
-  protected Single<List<E>> queryList(
-      SqlConnection connection, String query, Map<String, Object> entry) {
-    return executeQuery(connection, query, entry).toList();
-  }
-
-  protected <T> Single<List<T>> queryList(
-      SqlConnection connection, String query, Map<String, Object> entry, RowMapper<T> mapper) {
-    return executeQuery(connection, query, entry, mapper).toList();
-  }
-
-  private Observable<E> executeQuery(
+  protected Observable<E> executeQuery(
       SqlConnection connection, String query, Map<String, Object> entry) {
     return executeQuery(connection, query, entry, rowMapper());
   }
 
-  private <T> Observable<T> executeQuery(
+  protected <T> Observable<T> executeQuery(
       SqlConnection connection, String query, Map<String, Object> entry, RowMapper<T> mapper) {
     long start = System.currentTimeMillis();
     return SqlTemplate.forQuery(connection, query)
@@ -69,7 +49,7 @@ public abstract class DatabaseProxy<E> {
         .doOnComplete(onComplete(query, entry, start));
   }
 
-  private Observable<E> executeUpdate(
+  protected Observable<E> executeUpdate(
       SqlConnection connection, String query, Map<String, Object> entry) {
     long start = System.currentTimeMillis();
     return SqlTemplate.forUpdate(connection, query)
@@ -94,10 +74,11 @@ public abstract class DatabaseProxy<E> {
 
   private Action onComplete(String query, Map<String, Object> entry, long start) {
     return () -> {
-      log.debug(
-          "DATABASE_STATS time_taken={}, status=OK, query='{}'",
+      log.info(
+          "DATABASE_STATS time_taken={}, status=OK, query='{}', placeholders='{}'",
           System.currentTimeMillis() - start,
-          query);
+          query,
+          entriesToString(entry));
     };
   }
 

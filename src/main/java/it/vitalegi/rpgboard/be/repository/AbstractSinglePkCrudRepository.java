@@ -1,6 +1,7 @@
 package it.vitalegi.rpgboard.be.repository;
 
 import io.reactivex.Observable;
+import io.reactivex.Single;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import io.vertx.reactivex.sqlclient.templates.RowMapper;
 import it.vitalegi.rpgboard.be.repository.querybuilder.pg.DeleteFactory;
@@ -31,7 +32,7 @@ public abstract class AbstractSinglePkCrudRepository<E, P> extends AbstractCrudR
   }
 
   public Observable<E> delete(SqlConnection connection, P pk) {
-    return updateSingle(
+    return executeUpdate(
         connection,
         DeleteFactory.init(table)
             .where(
@@ -40,13 +41,15 @@ public abstract class AbstractSinglePkCrudRepository<E, P> extends AbstractCrudR
         primaryKeysMapper.apply(pk));
   }
 
-  public Observable<E> getById(SqlConnection connection, P pk) {
-    return querySingle(
-        connection,
-        SelectFactory.init(table)
-            .where(
-                WhereClause.and(new EqualsPlaceholder(FieldsPicker.exact(table.getPrimaryKeys()))))
-            .build(),
-        primaryKeysMapper.apply(pk));
+  public Single<E> getById(SqlConnection connection, P pk) {
+    return executeQuery(
+            connection,
+            SelectFactory.init(table)
+                .where(
+                    WhereClause.and(
+                        new EqualsPlaceholder(FieldsPicker.exact(table.getPrimaryKeys()))))
+                .build(),
+            primaryKeysMapper.apply(pk))
+        .singleOrError();
   }
 }
