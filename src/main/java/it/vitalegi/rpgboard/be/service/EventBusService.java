@@ -26,4 +26,14 @@ public class EventBusService {
             new DeliveryOptions().addHeader(MainVerticle.UID, userId.toString()))
         .map(message -> (Boolean) message.body());
   }
+
+  public void publish(UUID gameId, String topic, String action, Object message) {
+    eventBus.publish(
+        "external.outgoing.game." + gameId,
+        new JsonObject()
+            .put("gameId", gameId.toString())
+            .put("topic", topic)
+            .put("action", action)
+            .put("payload", message));
+  }
 }

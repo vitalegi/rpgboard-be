@@ -2,7 +2,6 @@ package it.vitalegi.rpgboard.be.service;
 
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
-import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
 import it.vitalegi.rpgboard.be.mapper.GameMapper;
@@ -24,7 +23,7 @@ public class GameServiceLocal {
   @Inject protected GamePlayerService gamePlayerService;
   @Inject protected GamePlayerRoleServiceLocal gamePlayerRoleServiceLocal;
   @Inject protected UserServiceLocal userServiceLocal;
-  @Inject protected EventBus eventBus;
+  @Inject protected EventBusService eventBus;
   Logger log = LoggerFactory.getLogger(GameServiceLocal.class);
 
   public Single<Game> addGame(
@@ -82,8 +81,11 @@ public class GameServiceLocal {
               return GameMapper.mapGamePlayer(
                       userServiceLocal.getUser(conn, userId),
                       gamePlayerRoleServiceLocal.getUserRoles(conn, gameId, userId))
-                  .map(user -> eventBus.publish("external.outgoing.game." + gameId, user))
-                  .map(user -> true);
+                  .map(
+                      user -> {
+                        eventBus.publish(gameId, "players", "ADD", user);
+                        return true;
+                      });
             });
   }
 

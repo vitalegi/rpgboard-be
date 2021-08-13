@@ -19,7 +19,6 @@ public class GameMapper {
   @NonNull
   public static JsonObject mapGamePlayer(User user, List<GamePlayerRole> roles) {
     return new JsonObject()
-        .put("action", "JOIN")
         .put("user", JsonObject.mapFrom(user))
         .put(
             "roles",
