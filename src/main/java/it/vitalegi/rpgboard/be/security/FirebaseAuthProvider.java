@@ -66,7 +66,11 @@ public class FirebaseAuthProvider extends AuthProvider {
             (next) -> {
               try {
                 FirebaseAuth instance = FirebaseAuth.getInstance();
-                FirebaseToken user = instance.verifyIdToken(token);
+                String tokenValue = token;
+                if (tokenValue.startsWith("Bearer ")) {
+                  tokenValue = tokenValue.substring("Bearer ".length());
+                }
+                FirebaseToken user = instance.verifyIdToken(tokenValue);
                 next.complete(user);
               } catch (FirebaseAuthException e) {
                 throw new InvalidTokenException(e);

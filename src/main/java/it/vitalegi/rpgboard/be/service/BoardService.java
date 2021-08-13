@@ -1,21 +1,25 @@
 package it.vitalegi.rpgboard.be.service;
 
 import io.reactivex.Single;
+import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Board;
+import it.vitalegi.rpgboard.be.data.BoardElement;
+import it.vitalegi.rpgboard.be.repository.BoardElementRepository;
 import it.vitalegi.rpgboard.be.repository.BoardRepository;
-import it.vitalegi.rpgboard.be.util.VertxUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Singleton
 public class BoardService {
   @Inject protected BoardRepository boardRepository;
+  @Inject protected BoardElementRepository boardElementRepository;
 
   Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -44,41 +48,31 @@ public class BoardService {
         .flatMap(
             b -> {
               if (active) {
-                return boardRepository.resetBoardsVisibility(conn, gameId).map(boards -> true);
+                return boardRepository.resetActiveBoard(conn, gameId).map(boards -> true);
               }
               return Single.just(true);
             })
         .flatMap(b -> boardRepository.add(conn, board).singleOrError());
   }
 
-  public Single<Boolean> setActiveBoard(SqlConnection conn, UUID gameId, UUID boardId) {
+  public Single<Board> setActiveBoard(SqlConnection conn, UUID gameId, UUID boardId) {
     log.info("Set active board, gameId={} boardId={}", gameId, boardId);
-    return boardRepository
-        .getActiveBoard(conn, gameId)
-        .map(VertxUtil.debug("Old board", Board::getBoardId))
-        .flatMap(oldBoard -> updateVisibility(conn, oldBoard, false).toMaybe())
-        .switchIfEmpty(Single.just(new Board()))
-        .flatMap(
-            old ->
-                boardRepository
-                    .getById(conn, boardId)
-                    .flatMap(board -> updateVisibility(conn, board, true)))
-        .map(b -> true);
+    return Single.just(boardId)
+        .flatMap(b -> boardRepository.resetActiveBoard(conn, gameId).map(boards -> true))
+        .flatMap(b -> boardRepository.updateActive(conn, boardId, true).singleOrError());
+  }
+
+  public Single<Board> getActiveBoard(SqlConnection conn, UUID gameId) {
+    return boardRepository.getActiveBoard(conn, gameId).toSingle();
+  }
+
+  public Single<List<Board>> getAllBoards(SqlConnection conn, UUID gameId) {
+    return boardRepository.getAllBoards(conn, gameId);
   }
 
   public Single<Board> getBoard(SqlConnection conn, UUID boardId, UUID userId) {
     // TODO add grants check
     return boardRepository.getById(conn, boardId);
-  }
-
-  protected Single<Board> updateVisibility(SqlConnection conn, Board board, boolean active) {
-    return updateBoard(
-        conn,
-        board.getBoardId(),
-        board.getUserId(),
-        board.getName(),
-        board.getVisibilityPolicy(),
-        active);
   }
 
   public Single<Board> updateBoard(
@@ -102,6 +96,38 @@ public class BoardService {
               return board;
             })
         .flatMap(board -> boardRepository.update(conn, board).singleOrError());
+  }
+
+  public Single<List<BoardElement>> getBoardElements(SqlConnection conn, UUID boardId) {
+    return boardElementRepository.getBoardElements(conn, boardId);
+  }
+
+  public Single<BoardElement> addBoardElement(
+      SqlConnection conn,
+      UUID boardId,
+      UUID parentId,
+      JsonObject config,
+      String updatePolicy,
+      String visibilityPolicy,
+      UUID userId) {
+    notNull(boardId, "boardId null");
+    notNull(config, "config null");
+    notNull(updatePolicy, "updatePolicy null");
+    notNull(visibilityPolicy, "visibilityPolicy null");
+    notNull(userId, "userId null");
+
+    BoardElement entry = new BoardElement();
+    entry.setBoardId(boardId);
+    entry.setParentId(parentId);
+    entry.setConfig(config);
+    entry.setUpdatePolicy(updatePolicy);
+    entry.setVisibilityPolicy(visibilityPolicy);
+    entry.setUserId(userId);
+    OffsetDateTime now = OffsetDateTime.now();
+    entry.setCreateDate(now);
+    entry.setLastUpdate(now);
+
+    return boardElementRepository.add(conn, entry).singleOrError();
   }
 
   protected void notNull(Object obj, String msg) {

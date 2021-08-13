@@ -56,11 +56,12 @@ public abstract class AbstractCrudRepository<E> extends DatabaseProxy<E> {
 
   protected Single<List<E>> getByFields(SqlConnection connection, E entry, List<String> fields) {
     return executeQuery(
-        connection,
-        SelectFactory.init(table)
-            .where(WhereClause.and(new EqualsPlaceholder(FieldsPicker.exact(fields))))
-            .build(),
-        entryMapper.apply(entry)).toList();
+            connection,
+            SelectFactory.init(table)
+                .where(WhereClause.and(new EqualsPlaceholder(FieldsPicker.exact(fields))))
+                .build(),
+            entryMapper.apply(entry))
+        .toList();
   }
 
   protected Single<List<E>> getByFields(
@@ -73,14 +74,15 @@ public abstract class AbstractCrudRepository<E> extends DatabaseProxy<E> {
     in.put(fieldName1, fieldValue1);
     in.put(fieldName2, fieldValue2);
     return executeQuery(
-        connection,
-        SelectFactory.init(table)
-            .where(
-                WhereClause.and(
-                    new EqualsPlaceholder(
-                        FieldsPicker.exact(Arrays.asList(fieldName1, fieldName2)))))
-            .build(),
-        in).toList();
+            connection,
+            SelectFactory.init(table)
+                .where(
+                    WhereClause.and(
+                        new EqualsPlaceholder(
+                            FieldsPicker.exact(Arrays.asList(fieldName1, fieldName2)))))
+                .build(),
+            in)
+        .toList();
   }
 
   protected Single<List<E>> getByField(
@@ -88,11 +90,12 @@ public abstract class AbstractCrudRepository<E> extends DatabaseProxy<E> {
     Map<String, Object> in = new HashMap<>();
     in.put(fieldName, fieldValue);
     return executeQuery(
-        connection,
-        SelectFactory.init(table)
-            .where(WhereClause.and(new EqualsPlaceholder(FieldsPicker.exact(fieldName))))
-            .build(),
-        in).toList();
+            connection,
+            SelectFactory.init(table)
+                .where(WhereClause.and(new EqualsPlaceholder(FieldsPicker.exact(fieldName))))
+                .build(),
+            in)
+        .toList();
   }
 
   protected Single<E> getUniqueByField(
@@ -109,7 +112,8 @@ public abstract class AbstractCrudRepository<E> extends DatabaseProxy<E> {
   }
 
   public Single<List<E>> getAll(SqlConnection connection) {
-    return executeQuery(connection, SelectFactory.init(table).build(), Collections.emptyMap()).toList();
+    return executeQuery(connection, SelectFactory.init(table).build(), Collections.emptyMap())
+        .toList();
   }
 
   protected RowMapper<E> rowMapper() {

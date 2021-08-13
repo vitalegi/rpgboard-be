@@ -28,6 +28,10 @@ public class Mappers {
               it.vitalegi.rpgboard.be.data.GamePlayerRoleRowMapper.INSTANCE);
 
   public static final it.vitalegi.rpgboard.be.reactivex.data.UserRowMapper USER =
-      it.vitalegi.rpgboard.be.reactivex.data.UserRowMapper.newInstance(
-          it.vitalegi.rpgboard.be.data.UserRowMapper.INSTANCE);
+          it.vitalegi.rpgboard.be.reactivex.data.UserRowMapper.newInstance(
+                  it.vitalegi.rpgboard.be.data.UserRowMapper.INSTANCE);
+  public static final it.vitalegi.rpgboard.be.reactivex.data.BoardElementRowMapper BOARD_ELEMENT =
+          it.vitalegi.rpgboard.be.reactivex.data.BoardElementRowMapper.newInstance(
+                  it.vitalegi.rpgboard.be.data.BoardElementRowMapper.INSTANCE);
+
 }

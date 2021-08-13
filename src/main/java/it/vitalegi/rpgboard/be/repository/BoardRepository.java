@@ -1,6 +1,7 @@
 package it.vitalegi.rpgboard.be.repository;
 
 import io.reactivex.Maybe;
+import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Board;
@@ -32,7 +33,11 @@ public class BoardRepository extends AbstractSinglePkCrudRepository<Board, UUID>
         .map(boards -> boards.get(0));
   }
 
-  public Single<List<Board>> resetBoardsVisibility(SqlConnection connection, UUID gameId) {
+  public Single<List<Board>> getAllBoards(SqlConnection connection, UUID gameId) {
+    return getByField(connection, Board.GAME_ID, gameId);
+  }
+
+  public Single<List<Board>> resetActiveBoard(SqlConnection connection, UUID gameId) {
 
     Board b = new Board();
     b.setGameId(gameId);
@@ -46,5 +51,20 @@ public class BoardRepository extends AbstractSinglePkCrudRepository<Board, UUID>
                 .build(),
             Board.map(b))
         .toList();
+  }
+
+  public Observable<Board> updateActive(SqlConnection connection, UUID boardId, boolean active) {
+    Board b = new Board();
+    b.setBoardId(boardId);
+    b.setActive(active);
+
+    return executeUpdate(
+        connection,
+        UpdateFactory.init(table)
+            .set(SetClause.init().exact(Board.IS_ACTIVE))
+            .where(
+                WhereClause.and(new EqualsPlaceholder(FieldsPicker.exact(table.getPrimaryKeys()))))
+            .build(),
+        entryMapper.apply(b));
   }
 }

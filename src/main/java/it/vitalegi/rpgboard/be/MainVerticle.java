@@ -35,6 +35,7 @@ import it.vitalegi.rpgboard.be.security.WebSocketBridgeListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Factory
@@ -100,12 +101,19 @@ public class MainVerticle extends AbstractVerticle {
 
     router.route("/api/*").handler(authProvider);
 
-    router.post("/api/game").handler(eventbusWithPayload("game.add"));
-    router.get("/api/game/:gameId").handler(this::getGame);
-    router.delete("/api/game/:gameId").handler(this::deleteGame);
-    router.get("/api/games").handler(eventbusWithPayload("game.getAvailableGames"));
-    router.post("/api/user/registration").handler(eventbusWithPayload("user.registration"));
-    router.post("/api/game/:gameId/board").handler(this::addBoard);
+    router.post("/api/user/registration").handler(toEventBus("user.registration"));
+    // games
+    router.post("/api/game").handler(toEventBus("game.add"));
+    router.get("/api/game/:gameId").handler(toEventBus("game.get"));
+    router.delete("/api/game/:gameId").handler(toEventBus("game.delete"));
+    router.get("/api/games").handler(toEventBus("game.getAvailableGames"));
+    // boards
+    router.post("/api/game/:gameId/board").handler(toEventBus("game.board.add"));
+    router.get("/api/game/:gameId/boards").handler(toEventBus("game.board.getAll"));
+    router.get("/api/game/:gameId/activeBoard").handler(toEventBus("game.board.getActive"));
+    // board's elements
+    router.post("/api/board/:boardId/element").handler(toEventBus("game.boardelement.add"));
+    router.get("/api/board/:boardId/elements").handler(toEventBus("game.boardelement.getAll"));
 
     log.info("Deployed routes");
     for (Route route : router.getRoutes()) {
@@ -197,51 +205,30 @@ public class MainVerticle extends AbstractVerticle {
     return corsHandler;
   }
 
-  protected Handler<RoutingContext> eventbusWithPayload(String address) {
-    return ctx ->
+  protected Handler<RoutingContext> toEventBus(String address) {
+    return ctx -> {
+      try {
+        JsonObject payload = ctx.getBodyAsJson();
+        if (payload == null) {
+          payload = new JsonObject();
+        }
+        for (Map.Entry<String, String> entry : ctx.pathParams().entrySet()) {
+          payload.put(entry.getKey(), entry.getValue());
+        }
+        log.info("Send to {}: {}", address, payload);
         vertx
             .eventBus()
-            .request(
-                address,
-                ctx.getBodyAsJson(),
-                deliveryOptions(ctx),
-                reply -> handleResponse(ctx, reply));
-  }
-
-  protected void getGame(RoutingContext ctx) {
-    JsonObject message = new JsonObject().put("gameId", ctx.pathParam("gameId"));
-    vertx
-        .eventBus()
-        .request("game.get", message, deliveryOptions(ctx), reply -> handleResponse(ctx, reply));
-  }
-
-  protected void deleteGame(RoutingContext ctx) {
-    JsonObject message = new JsonObject().put("gameId", ctx.pathParam("gameId"));
-    vertx
-        .eventBus()
-        .request("game.delete", message, deliveryOptions(ctx), reply -> handleResponse(ctx, reply));
-  }
-
-  protected void addBoard(RoutingContext ctx) {
-    vertx
-        .eventBus()
-        .request(
-            "game.board.add",
-            ctx.getBodyAsJson().put("gameId", ctx.pathParam("gameId")),
-            deliveryOptions(ctx),
-            reply -> handleResponse(ctx, reply));
+            .request(address, payload, deliveryOptions(ctx), reply -> handleResponse(ctx, reply));
+      } catch (Throwable e) {
+        handleFailureResponse(ctx, e);
+      }
+    };
   }
 
   private SockJSBridgeOptions getBridgeOptions() {
     return new SockJSBridgeOptions()
-        .addOutboundPermitted(
-            new PermittedOptions().setAddressRegex("external\\.outgoing.*")
-            // .setRequiredAuthority("REGISTERED_USER")
-            )
-        .addInboundPermitted(
-            new PermittedOptions().setAddressRegex("external\\.incoming.*")
-            // .setRequiredAuthority("REGISTERED_USER")
-            );
+        .addOutboundPermitted(new PermittedOptions().setAddressRegex("external\\.outgoing.*"))
+        .addInboundPermitted(new PermittedOptions().setAddressRegex("external\\.incoming.*"));
   }
 
   private <T> void handleResponse(RoutingContext context, AsyncResult<Message<T>> reply) {
@@ -250,13 +237,15 @@ public class MainVerticle extends AbstractVerticle {
       response.putHeader("content-type", "application/json; charset=utf-8");
       response.end(reply.result().body().toString());
     } else {
-      context.response().setStatusCode(500);
-      JsonObject payload =
-          new JsonObject()
-              .put("error", reply.cause().getClass().getName())
-              .put("description", reply.cause().getMessage());
-      context.json(payload);
+      handleFailureResponse(context, reply.cause());
     }
+  }
+
+  private void handleFailureResponse(RoutingContext ctx, Throwable e) {
+    ctx.response().setStatusCode(500);
+    JsonObject payload =
+        new JsonObject().put("error", e.getClass().getName()).put("description", e.getMessage());
+    ctx.json(payload);
   }
 
   private DeliveryOptions deliveryOptions(RoutingContext ctx) {

@@ -26,10 +26,18 @@ public class SetClause implements Renderer {
     return this;
   }
 
+  public SetClause exact(String field) {
+    return exact(null, field);
+  }
+
   public SetClause exact(String alias, String field) {
     renderers.add(
         new SetTableColumnValue(FieldsPicker.exact(alias, Collections.singletonList(field))));
     return this;
+  }
+
+  public SetClause exact(List<String> fields) {
+    return exact(null, fields);
   }
 
   public SetClause exact(String alias, List<String> fields) {

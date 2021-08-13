@@ -40,10 +40,10 @@ public class VertxUtil {
     list.stream()
         .map(
             e -> {
-              if (e instanceof JsonObject) {
-                return JsonObject.mapFrom(e);
+              if (e instanceof String) {
+                return e;
               }
-              return e;
+              return JsonObject.mapFrom(e);
             })
         .forEach(jsonArr::add);
     return jsonArr;

@@ -64,6 +64,10 @@ public class GameVerticle extends AbstractVerticle {
       eventBus.consumer("game.update", this::updateGame);
       eventBus.consumer("game.delete", this::deleteGame);
       eventBus.consumer("game.board.add", this::addBoard);
+      eventBus.consumer("game.board.getActive", this::getActiveBoard);
+      eventBus.consumer("game.board.getAll", this::getAllBoards);
+      eventBus.consumer("game.boardelement.add", this::addBoardElement);
+      eventBus.consumer("game.boardelement.getAll", this::getBoardElements);
       log.info("Start done");
       startPromise.complete();
     } catch (Exception e) {
@@ -143,6 +147,64 @@ public class GameVerticle extends AbstractVerticle {
                   m ->
                       boardService.addBoard(
                           conn, gameId, getUserId(msg), name, visibilityPolicy, active))
+              .toMaybe();
+        })
+        .subscribe(observer);
+  }
+
+  protected void getActiveBoard(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "getActiveBoard");
+    JsonObject body = msg.body();
+    tx(conn -> {
+          UUID gameId = UuidUtil.getUUID(body.getString("gameId"));
+          return boardService.getActiveBoard(conn, gameId).toMaybe();
+        })
+        .subscribe(observer);
+  }
+
+  protected void getAllBoards(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "getAllBoards");
+    JsonObject body = msg.body();
+    tx(conn -> {
+          UUID gameId = UuidUtil.getUUID(body.getString("gameId"));
+          return boardService.getAllBoards(conn, gameId).toMaybe();
+        })
+        .subscribe(observer);
+  }
+
+  protected void addBoardElement(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "addBoardElement");
+    JsonObject body = msg.body();
+    tx(conn -> {
+          UUID boardId = UuidUtil.getUUID(body.getString("boardId"));
+          UUID parentId = UuidUtil.getUUID(body.getString("parentId"));
+          JsonObject config = body.getJsonObject("config");
+          String updatePolicy = body.getString("updatePolicy");
+          String visibilityPolicy = body.getString("visibilityPolicy");
+
+          return Single.just(msg)
+              .flatMap(
+                  m ->
+                      boardService.addBoardElement(
+                          conn,
+                          boardId,
+                          parentId,
+                          config,
+                          updatePolicy,
+                          visibilityPolicy,
+                          getUserId(msg)))
+              .toMaybe();
+        })
+        .subscribe(observer);
+  }
+
+  protected void getBoardElements(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "getBoardElements");
+    JsonObject body = msg.body();
+    tx(conn -> {
+          UUID boardId = UuidUtil.getUUID(body.getString("boardId"));
+          return Single.just(msg)
+              .flatMap(m -> boardService.getBoardElements(conn, boardId))
               .toMaybe();
         })
         .subscribe(observer);
