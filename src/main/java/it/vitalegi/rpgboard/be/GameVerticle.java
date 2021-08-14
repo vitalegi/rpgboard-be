@@ -158,7 +158,7 @@ public class GameVerticle extends AbstractVerticle {
     JsonObject body = msg.body();
     tx(conn -> {
           UUID gameId = UuidUtil.getUUID(body.getString("gameId"));
-          return boardService.getActiveBoard(conn, gameId).toMaybe();
+          return boardService.getActiveBoard(conn, gameId, getUserId(msg)).toMaybe();
         })
         .subscribe(observer);
   }
@@ -168,7 +168,7 @@ public class GameVerticle extends AbstractVerticle {
     JsonObject body = msg.body();
     tx(conn -> {
           UUID gameId = UuidUtil.getUUID(body.getString("gameId"));
-          return boardService.getAllBoards(conn, gameId).toMaybe();
+          return boardService.getAllBoards(conn, gameId, getUserId(msg)).toMaybe();
         })
         .subscribe(observer);
   }
@@ -207,7 +207,7 @@ public class GameVerticle extends AbstractVerticle {
     tx(conn -> {
           UUID boardId = UuidUtil.getUUID(body.getString("boardId"));
           return Single.just(msg)
-              .flatMap(m -> boardService.getBoardElements(conn, boardId))
+              .flatMap(m -> boardService.getBoardElements(conn, boardId, getUserId(msg)))
               .toMaybe();
         })
         .subscribe(observer);

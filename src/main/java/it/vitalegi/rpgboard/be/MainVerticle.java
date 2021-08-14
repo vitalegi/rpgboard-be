@@ -101,7 +101,10 @@ public class MainVerticle extends AbstractVerticle {
 
     router.route("/api/*").handler(authProvider);
 
+    // users
     router.post("/api/user/registration").handler(toEventBus("user.registration"));
+    router.get("/api/user").handler(toEventBus("user.findByExternalUserId"));
+
     // games
     router.post("/api/game").handler(toEventBus("game.add"));
     router.get("/api/game/:gameId").handler(toEventBus("game.get"));

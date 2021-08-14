@@ -4,7 +4,6 @@ import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
-import it.vitalegi.rpgboard.be.data.GamePlayerRole;
 import it.vitalegi.rpgboard.be.roles.GameRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +51,18 @@ public class GameService {
 
   public Single<List<JsonObject>> getAvailableGames(SqlConnection conn, UUID userId) {
     return gameServiceLocal.getAvailableGames(conn, userId);
+  }
+
+  public Single<Boolean> checkGrantGameWrite(SqlConnection conn, UUID gameId, UUID userId) {
+    return gameServiceLocal.checkGrantGameWrite(conn, gameId, userId);
+  }
+
+  public Single<Boolean> checkGrantGameRead(SqlConnection conn, UUID gameId, UUID userId) {
+    return gameServiceLocal.checkGrantGameRead(conn, gameId, userId);
+  }
+
+  public Single<Boolean> hasGrantGameRead(SqlConnection conn, UUID gameId, UUID userId) {
+    return gameServiceLocal.checkGrantGameRead(conn, gameId, userId);
   }
 
   protected Single<Boolean> checkRole(SqlConnection conn, UUID userId, UUID gameId, String role) {

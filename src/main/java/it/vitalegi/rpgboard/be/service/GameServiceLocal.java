@@ -114,6 +114,37 @@ public class GameServiceLocal {
     return gameRepository.getAvailableGames(conn, userId);
   }
 
+  public Single<Boolean> checkGrantGameWrite(SqlConnection conn, UUID gameId, UUID userId) {
+    return gameRepository
+        .getById(conn, gameId)
+        .flatMap(
+            game -> {
+              if (game.getOwnerId().equals(userId)) {
+                // the owner can always edit
+                return Single.just(true);
+              }
+              // the master can always edit
+              return gamePlayerRoleServiceLocal.checkUserRole(
+                  conn, gameId, userId, GameRole.MASTER);
+            });
+  }
+
+  public Single<Boolean> checkGrantGameRead(SqlConnection conn, UUID gameId, UUID userId) {
+    return hasGrantGameRead(conn, gameId, userId)
+        .map(
+            hasGrant -> {
+              if (hasGrant) {
+                return true;
+              }
+              throw new IllegalAccessException(
+                  "User " + userId + " doesn't have READ permissions on game " + gameId);
+            });
+  }
+
+  public Single<Boolean> hasGrantGameRead(SqlConnection conn, UUID gameId, UUID userId) {
+    return gamePlayerRoleServiceLocal.hasUserRole(conn, gameId, userId, GameRole.PLAYER);
+  }
+
   protected void notNull(Object obj, String msg) {
     if (obj == null) {
       throw new IllegalArgumentException(msg);

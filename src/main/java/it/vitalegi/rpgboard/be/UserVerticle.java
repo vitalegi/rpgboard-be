@@ -72,13 +72,11 @@ public class UserVerticle extends AbstractVerticle {
     JsonObject body = msg.body();
     tx(conn -> {
           String externalUserId = body.getString("externalUserId");
-          return Single.just(msg)
-              .flatMapMaybe(m -> userServiceLocal.findByExternalUserId(conn, externalUserId))
-              .onErrorReturn(
-                  e -> {
-                    log.error("error on user verticle", e);
-                    return null;
-                  });
+          if (externalUserId == null) {
+            externalUserId = msg.headers().get(MainVerticle.EXTERNAL_UID);
+            log.info("externalUserId not provided, go for header {}", externalUserId);
+          }
+          return userServiceLocal.findByExternalUserId(conn, externalUserId);
         })
         .subscribe(observer);
   }
