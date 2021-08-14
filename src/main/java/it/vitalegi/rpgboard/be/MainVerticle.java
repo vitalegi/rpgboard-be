@@ -18,6 +18,7 @@ import io.vertx.ext.bridge.PermittedOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSBridgeOptions;
 import io.vertx.reactivex.config.ConfigRetriever;
 import io.vertx.reactivex.core.AbstractVerticle;
+import io.vertx.reactivex.core.buffer.Buffer;
 import io.vertx.reactivex.core.eventbus.EventBus;
 import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.core.http.HttpServerResponse;
@@ -36,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 @Factory
@@ -118,12 +120,18 @@ public class MainVerticle extends AbstractVerticle {
     // board's elements
     router.post("/api/board/:boardId/element").handler(toEventBus("game.boardelement.add"));
     router.get("/api/board/:boardId/elements").handler(toEventBus("game.boardelement.getAll"));
-    router.delete("/api/board/:boardId/element/:entryId").handler(toEventBus("game.boardelement.delete"));
+    router
+        .delete("/api/board/:boardId/element/:entryId")
+        .handler(toEventBus("game.boardelement.delete"));
     // assets
     router.post("/api/game/:gameId/asset").handler(toEventBus("game.asset.add"));
     router.get("/api/game/:gameId/assets").handler(toEventBus("game.asset.getAll"));
     router.get("/api/game/:gameId/asset/:assetId").handler(toEventBus("game.asset.get"));
     router.delete("/api/game/:gameId/assets/:assetId").handler(toEventBus("game.asset.delete"));
+
+    router
+        .get("/content/game/:gameId/asset/:assetId")
+        .handler(toEventBus("game.asset.getContent", this::handleAssetContentResponse));
 
     log.info("Deployed routes");
     for (Route route : router.getRoutes()) {
@@ -216,6 +224,11 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   protected Handler<RoutingContext> toEventBus(String address) {
+    return toEventBus(address, this::handleResponse);
+  }
+
+  protected Handler<RoutingContext> toEventBus(
+      String address, BiConsumer<RoutingContext, AsyncResult<Message<Object>>> responseHandler) {
     return ctx -> {
       try {
         JsonObject payload = ctx.getBodyAsJson();
@@ -228,7 +241,11 @@ public class MainVerticle extends AbstractVerticle {
         log.info("Send to {}: {}", address, payload);
         vertx
             .eventBus()
-            .request(address, payload, deliveryOptions(ctx), reply -> handleResponse(ctx, reply));
+            .request(
+                address,
+                payload,
+                deliveryOptions(ctx),
+                reply -> responseHandler.accept(ctx, reply));
       } catch (Throwable e) {
         handleFailureResponse(ctx, e);
       }
@@ -251,16 +268,38 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
+  private void handleAssetContentResponse(
+      RoutingContext context, AsyncResult<Message<Object>> reply) {
+    if (reply.succeeded()) {
+      HttpServerResponse response = context.response();
+      JsonObject body = (JsonObject) reply.result().body();
+      byte[] content = body.getBinary("content");
+      Buffer payload = Buffer.buffer(content);
+      String contentType = body.getString("contentType");
+      response.putHeader("content-type", contentType);
+      response.end(payload);
+    } else {
+      handleFailureResponse(context, reply.cause());
+    }
+  }
+
   private void handleFailureResponse(RoutingContext ctx, Throwable e) {
     ctx.response().setStatusCode(500);
     JsonObject payload =
         new JsonObject().put("error", e.getClass().getName()).put("description", e.getMessage());
     ctx.json(payload);
+    log.error("Failed handling request, {}", e.getMessage(), e);
   }
 
   private DeliveryOptions deliveryOptions(RoutingContext ctx) {
-    return new DeliveryOptions()
-        .addHeader(UID, ctx.get(UID))
-        .addHeader(EXTERNAL_UID, ctx.get(EXTERNAL_UID));
+    DeliveryOptions options = new DeliveryOptions();
+
+    if (ctx.get(UID) != null) {
+      options.addHeader(UID, ctx.get(UID));
+    }
+    if (ctx.get(EXTERNAL_UID) != null) {
+      options.addHeader(EXTERNAL_UID, ctx.get(EXTERNAL_UID));
+    }
+    return options;
   }
 }

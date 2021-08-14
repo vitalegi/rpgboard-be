@@ -74,6 +74,7 @@ public class GameVerticle extends AbstractVerticle {
       eventBus.consumer("game.boardelement.delete", this::deleteBoardElement);
       eventBus.consumer("game.asset.add", this::addAsset);
       eventBus.consumer("game.asset.get", this::getAsset);
+      eventBus.consumer("game.asset.getContent", this::getAssetContent);
       eventBus.consumer("game.asset.getAll", this::getAssets);
       eventBus.consumer("game.asset.delete", this::deleteAsset);
       log.info("Start done");
@@ -253,6 +254,16 @@ public class GameVerticle extends AbstractVerticle {
     tx(conn -> {
           UUID assetId = UuidUtil.getUUID(body.getString("assetId"));
           return assetService.getAsset(conn, assetId, getUserId(msg)).toMaybe();
+        })
+        .subscribe(observer);
+  }
+
+  protected void getAssetContent(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "getAsset");
+    JsonObject body = msg.body();
+    tx(conn -> {
+          UUID assetId = UuidUtil.getUUID(body.getString("assetId"));
+          return assetService.getAssetContent(conn, assetId).toMaybe();
         })
         .subscribe(observer);
   }

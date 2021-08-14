@@ -2,6 +2,7 @@ package it.vitalegi.rpgboard.be.data;
 
 import io.vertx.codegen.annotations.DataObject;
 import io.vertx.codegen.format.SnakeCase;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.templates.annotations.Column;
 import io.vertx.sqlclient.templates.annotations.RowMapped;
@@ -21,7 +22,7 @@ public class Asset {
   public static final String NAME = "name";
   public static final String SIZE = "size";
   public static final String METADATA = "metadata";
-  public static final String TYPE = "type";
+  public static final String CONTENT_TYPE = "content_type";
   public static final String CONTENT = "content";
   public static final String USER_ID = "user_id";
   public static final String CREATE_DATE = "create_date";
@@ -37,7 +38,7 @@ public class Asset {
               NAME,
               SIZE,
               METADATA,
-              TYPE,
+              CONTENT_TYPE,
               CONTENT,
               USER_ID,
               CREATE_DATE,
@@ -57,10 +58,10 @@ public class Asset {
   Long size;
 
   @Column(name = CONTENT)
-  String content;
+  Buffer content;
 
-  @Column(name = TYPE)
-  String type;
+  @Column(name = CONTENT_TYPE)
+  String contentType;
 
   @Column(name = METADATA)
   JsonObject metadata;
@@ -80,8 +81,8 @@ public class Asset {
       String name,
       Long size,
       JsonObject metadata,
-      String type,
-      String content,
+      String contentType,
+      Buffer content,
       UUID userId,
       OffsetDateTime createDate,
       OffsetDateTime lastUpdate) {
@@ -91,7 +92,7 @@ public class Asset {
     map.put(NAME, name);
     map.put(SIZE, size);
     map.put(METADATA, metadata);
-    map.put(TYPE, type);
+    map.put(CONTENT_TYPE, contentType);
     map.put(CONTENT, content);
     map.put(USER_ID, userId);
     map.put(CREATE_DATE, createDate);
@@ -107,7 +108,7 @@ public class Asset {
         entry.getName(),
         entry.getSize(),
         entry.getMetadata(),
-        entry.getType(),
+        entry.getContentType(),
         entry.getContent(),
         entry.getUserId(),
         entry.getCreateDate(),
@@ -182,20 +183,20 @@ public class Asset {
     this.size = size;
   }
 
-  public String getContent() {
+  public Buffer getContent() {
     return content;
   }
 
-  public void setContent(String content) {
+  public void setContent(Buffer content) {
     this.content = content;
   }
 
-  public String getType() {
-    return type;
+  public String getContentType() {
+    return contentType;
   }
 
-  public void setType(String type) {
-    this.type = type;
+  public void setContentType(String contentType) {
+    this.contentType = contentType;
   }
 
   public JsonObject getMetadata() {
@@ -221,8 +222,8 @@ public class Asset {
         + ", content='"
         + content
         + '\''
-        + ", type='"
-        + type
+        + ", contentType='"
+        + contentType
         + '\''
         + ", metadata="
         + metadata
