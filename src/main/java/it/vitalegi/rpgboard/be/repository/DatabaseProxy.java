@@ -1,7 +1,6 @@
 package it.vitalegi.rpgboard.be.repository;
 
 import io.reactivex.Observable;
-import io.reactivex.Single;
 import io.reactivex.functions.Action;
 import io.reactivex.functions.Consumer;
 import io.vertx.reactivex.sqlclient.SqlConnection;
@@ -11,7 +10,6 @@ import io.vertx.sqlclient.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -74,11 +72,20 @@ public abstract class DatabaseProxy<E> {
 
   private Action onComplete(String query, Map<String, Object> entry, long start) {
     return () -> {
-      log.info(
-          "DATABASE_STATS time_taken={}, status=OK, query='{}', placeholders='{}'",
-          System.currentTimeMillis() - start,
-          query,
-          entriesToString(entry));
+      long duration = System.currentTimeMillis() - start;
+      if (duration < 10) {
+        log.debug(
+            "DATABASE_STATS time_taken={}, status=OK, query='{}', placeholders='{}'",
+            duration,
+            query,
+            entriesToString(entry));
+      } else {
+        log.info(
+            "DATABASE_STATS time_taken={}, status=OK, query='{}', placeholders='{}'",
+            duration,
+            query,
+            entriesToString(entry));
+      }
     };
   }
 

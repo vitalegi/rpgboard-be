@@ -17,3 +17,7 @@ ALTER TABLE RPG_Board_Element ADD CONSTRAINT fk_owner FOREIGN KEY (user_id) REFE
 
 ALTER TABLE RPG_Board_Element ADD CONSTRAINT fk_parent FOREIGN KEY (parent_id) REFERENCES RPG_Board_Element (entry_id) ON DELETE CASCADE ON UPDATE CASCADE;
 
+ALTER TABLE RPG_Asset ADD COLUMN type varchar(40);
+
+ALTER TABLE RPG_Asset ADD COLUMN metadata json;
+

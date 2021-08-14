@@ -13,6 +13,7 @@ import io.vertx.reactivex.core.eventbus.Message;
 import io.vertx.reactivex.pgclient.PgPool;
 import io.vertx.reactivex.sqlclient.SqlConnection;
 import it.vitalegi.rpgboard.be.data.Game;
+import it.vitalegi.rpgboard.be.service.AssetService;
 import it.vitalegi.rpgboard.be.service.BoardService;
 import it.vitalegi.rpgboard.be.service.GamePlayerRoleServiceLocal;
 import it.vitalegi.rpgboard.be.service.GameService;
@@ -27,6 +28,7 @@ import java.util.UUID;
 public class GameVerticle extends AbstractVerticle {
   static Logger log = LoggerFactory.getLogger(GameVerticle.class);
   protected GameService gameService;
+  protected AssetService assetService;
   protected GamePlayerRoleServiceLocal gamePlayerRoleServiceLocal;
   protected BoardService boardService;
   protected PgPool client;
@@ -48,6 +50,7 @@ public class GameVerticle extends AbstractVerticle {
       gameService = beanContext.getBean(GameService.class);
       gamePlayerRoleServiceLocal = beanContext.getBean(GamePlayerRoleServiceLocal.class);
       boardService = beanContext.getBean(BoardService.class);
+      assetService = beanContext.getBean(AssetService.class);
 
       if (!config().getString("DATABASE_URL", "").equals("")) {
         beanContext.registerSingleton(getClient(vertx, config()));
@@ -69,6 +72,10 @@ public class GameVerticle extends AbstractVerticle {
       eventBus.consumer("game.boardelement.add", this::addBoardElement);
       eventBus.consumer("game.boardelement.getAll", this::getBoardElements);
       eventBus.consumer("game.boardelement.delete", this::deleteBoardElement);
+      eventBus.consumer("game.asset.add", this::addAsset);
+      eventBus.consumer("game.asset.get", this::getAsset);
+      eventBus.consumer("game.asset.getAll", this::getAssets);
+      eventBus.consumer("game.asset.delete", this::deleteAsset);
       log.info("Start done");
       startPromise.complete();
     } catch (Exception e) {
@@ -221,6 +228,51 @@ public class GameVerticle extends AbstractVerticle {
           return Single.just(msg)
               .flatMap(m -> boardService.deleteBoardElement(conn, entryId, getUserId(msg)))
               .toMaybe();
+        })
+        .subscribe(observer);
+  }
+
+  protected void addAsset(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "addAsset");
+    JsonObject body = msg.body();
+    tx(conn -> {
+          UUID gameId = UuidUtil.getUUID(body.getString("gameId"));
+          String name = body.getString("name");
+          String content = body.getString("content");
+          JsonObject metadata = body.getJsonObject("metadata", new JsonObject());
+          return assetService
+              .addAsset(conn, gameId, getUserId(msg), name, content, metadata)
+              .toMaybe();
+        })
+        .subscribe(observer);
+  }
+
+  protected void getAsset(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "getAsset");
+    JsonObject body = msg.body();
+    tx(conn -> {
+          UUID assetId = UuidUtil.getUUID(body.getString("assetId"));
+          return assetService.getAsset(conn, assetId, getUserId(msg)).toMaybe();
+        })
+        .subscribe(observer);
+  }
+
+  protected void getAssets(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "getAssets");
+    JsonObject body = msg.body();
+    tx(conn -> {
+          UUID gameId = UuidUtil.getUUID(body.getString("gameId"));
+          return assetService.getAssets(conn, gameId, getUserId(msg)).toMaybe();
+        })
+        .subscribe(observer);
+  }
+
+  protected void deleteAsset(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "deleteAsset");
+    JsonObject body = msg.body();
+    tx(conn -> {
+          UUID assetId = UuidUtil.getUUID(body.getString("assetId"));
+          return assetService.deleteAsset(conn, assetId, getUserId(msg)).toMaybe();
         })
         .subscribe(observer);
   }
