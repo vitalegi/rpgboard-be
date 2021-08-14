@@ -108,6 +108,7 @@ public class MainVerticle extends AbstractVerticle {
     // games
     router.post("/api/game").handler(toEventBus("game.add"));
     router.get("/api/game/:gameId").handler(toEventBus("game.get"));
+    router.post("/api/game/:gameId/join").handler(toEventBus("game.join"));
     router.delete("/api/game/:gameId").handler(toEventBus("game.delete"));
     router.get("/api/games").handler(toEventBus("game.getAvailableGames"));
     // boards
