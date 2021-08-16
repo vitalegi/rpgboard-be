@@ -27,13 +27,14 @@ public class EventBusService {
         .map(message -> (Boolean) message.body());
   }
 
-  public void publish(UUID gameId, String topic, String action, Object message) {
+  public void publish(UUID gameId, String topic, String action, UUID userId, Object message) {
     eventBus.publish(
         "external.outgoing.game." + gameId,
         new JsonObject()
             .put("gameId", gameId.toString())
             .put("topic", topic)
             .put("action", action)
+            .put("userId", userId.toString())
             .put("payload", message));
   }
 }

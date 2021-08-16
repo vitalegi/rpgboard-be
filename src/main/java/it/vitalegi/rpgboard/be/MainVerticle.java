@@ -277,7 +277,7 @@ public class MainVerticle extends AbstractVerticle {
       byte[] content = body.getBinary("content");
       Buffer payload = Buffer.buffer(content);
       response.putHeader("content-type", body.getString("contentType"));
-      response.putHeader("cache-control", "max-age=" + (60 * 60 * 24 * 7)+", public, immutable");
+      response.putHeader("cache-control", "max-age=" + (60 * 60 * 24 * 7) + ", public, immutable");
       response.end(payload);
     } else {
       handleFailureResponse(context, reply.cause());

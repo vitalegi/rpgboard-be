@@ -8,7 +8,7 @@ public enum JoinType {
 
   private final String statement;
 
-  private JoinType(String statement) {
+  JoinType(String statement) {
     this.statement = statement;
   }
 

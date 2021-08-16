@@ -24,8 +24,7 @@ import java.util.function.BiConsumer;
 public class WebSocketBridgeListener implements Handler<BridgeEvent> {
   Logger log = LoggerFactory.getLogger(this.getClass());
   @Inject AuthProvider authProvider;
-  @Inject
-  EventBusService eventBus;
+  @Inject EventBusService eventBus;
   @Inject TopicUtil topicUtil;
 
   @Override

@@ -83,7 +83,7 @@ public class GameServiceLocal {
                       gamePlayerRoleServiceLocal.getUserRoles(conn, gameId, userId))
                   .map(
                       user -> {
-                        eventBus.publish(gameId, "players", "ADD", user);
+                        eventBus.publish(gameId, "players", "ADD", userId, user);
                         return true;
                       });
             });

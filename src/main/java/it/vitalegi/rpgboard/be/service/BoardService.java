@@ -23,7 +23,6 @@ public class BoardService {
   @Inject protected BoardRepository boardRepository;
   @Inject protected GameService gameService;
   @Inject protected BoardElementRepository boardElementRepository;
-  @Inject protected GamePlayerRoleServiceLocal gamePlayerRoleServiceLocal;
   @Inject protected EventBusService eventBusService;
 
   Logger log = LoggerFactory.getLogger(this.getClass());
@@ -58,7 +57,8 @@ public class BoardService {
               }
               return Single.just(true);
             })
-        .flatMap(b -> boardRepository.add(conn, board).singleOrError().map(notifyBoard("ADD")));
+        .flatMap(
+            b -> boardRepository.add(conn, board).singleOrError().map(notifyBoard("ADD", userId)));
   }
 
   public Single<Board> getActiveBoard(SqlConnection conn, UUID gameId, UUID userId) {
@@ -80,7 +80,8 @@ public class BoardService {
             board ->
                 gameService
                     .checkGrantGameRead(conn, board.getGameId(), userId)
-                    .map(hasGrant -> board));
+                    .map(hasGrant -> board))
+        .map(VertxUtil.debug("Board retrieved"));
   }
 
   public Single<Board> updateBoard(
@@ -105,7 +106,7 @@ public class BoardService {
               return board;
             })
         .flatMap(board -> boardRepository.update(conn, board).singleOrError())
-        .map(notifyBoard("UPDATE"));
+        .map(notifyBoard("UPDATE", userId));
   }
 
   public Single<List<BoardElement>> getBoardElements(
@@ -144,8 +145,10 @@ public class BoardService {
     entry.setLastUpdate(now);
 
     return getBoard(conn, boardId, userId)
-        .flatMap(board -> gameService.checkGrantGameRead(conn, board.getGameId(), userId))
-        .flatMap(hasGrant -> boardElementRepository.add(conn, entry).singleOrError());
+        .flatMap(
+            board ->
+                gameService.checkGrantGameRead(conn, board.getGameId(), userId).map(grant -> board))
+        .flatMap(board -> addAndNotifyBoardElement(conn, board.getGameId(), userId, entry));
   }
 
   public Single<BoardElement> updateBoardElement(
@@ -164,29 +167,67 @@ public class BoardService {
     notNull(updatePolicy, "updatePolicy null");
     notNull(visibilityPolicy, "visibilityPolicy null");
     notNull(userId, "userId null");
+
     return boardElementRepository
         .getById(conn, entryId)
         .map(VertxUtil.debug("Entry retrieved"))
-       .flatMap(
+        .flatMap(
             entry ->
                 getBoard(conn, entry.getBoardId(), userId)
-                    .map(VertxUtil.debug("Board retrieved"))
                     .flatMap(
-                        board -> gameService.checkGrantGameRead(conn, board.getGameId(), userId))
-                        .map(VertxUtil.debug("user has permissions"))
-                    .map(hasPermission -> entry))
+                        board ->
+                            gameService
+                                .checkGrantGameRead(conn, board.getGameId(), userId)
+                                .map(VertxUtil.debug("user has permissions"))
+                                .flatMap(
+                                    grants ->
+                                        updateAndNotifyBoardElement(
+                                            conn,
+                                            board,
+                                            userId,
+                                            entry,
+                                            parentId,
+                                            entryPosition,
+                                            config,
+                                            updatePolicy,
+                                            visibilityPolicy))));
+  }
+
+  protected Single<BoardElement> updateAndNotifyBoardElement(
+      SqlConnection conn,
+      Board board,
+      UUID userId,
+      BoardElement entry,
+      UUID parentId,
+      Long entryPosition,
+      JsonObject config,
+      String updatePolicy,
+      String visibilityPolicy) {
+
+    return Single.just(entry)
         .map(
-            entry -> {
-              log.info("Mapping inputs");
-              entry.setParentId(parentId);
-              entry.setEntryPosition(entryPosition);
-              entry.setConfig(config);
-              entry.setUpdatePolicy(updatePolicy);
-              entry.setVisibilityPolicy(visibilityPolicy);
-              entry.setLastUpdate(OffsetDateTime.now());
-              return entry;
-            })
-        .flatMap(entry -> boardElementRepository.update(conn, entry).singleOrError());
+            oldValue ->
+                mapUpdate(
+                    oldValue, parentId, entryPosition, config, updatePolicy, visibilityPolicy))
+        .flatMap(newEntry -> boardElementRepository.update(conn, newEntry).singleOrError())
+        .flatMap(newEntry -> notifyBoardElement(board.getGameId(), "UPDATE", userId, newEntry));
+  }
+
+  protected BoardElement mapUpdate(
+      BoardElement entry,
+      UUID parentId,
+      Long entryPosition,
+      JsonObject config,
+      String updatePolicy,
+      String visibilityPolicy) {
+    log.debug("Mapping inputs");
+    entry.setParentId(parentId);
+    entry.setEntryPosition(entryPosition);
+    entry.setConfig(config);
+    entry.setUpdatePolicy(updatePolicy);
+    entry.setVisibilityPolicy(visibilityPolicy);
+    entry.setLastUpdate(OffsetDateTime.now());
+    return entry;
   }
 
   public Single<BoardElement> deleteBoardElement(SqlConnection conn, UUID entryId, UUID userId) {
@@ -195,8 +236,30 @@ public class BoardService {
     return boardElementRepository
         .getById(conn, entryId)
         .flatMap(entry -> getBoard(conn, entry.getBoardId(), userId))
-        .flatMap(board -> gameService.checkGrantGameRead(conn, board.getGameId(), userId))
-        .flatMap(hasGrant -> boardElementRepository.delete(conn, entryId).singleOrError());
+        .flatMap(
+            board ->
+                gameService
+                    .checkGrantGameRead(conn, board.getGameId(), userId)
+                    .flatMap(
+                        hasGrant -> boardElementRepository.delete(conn, entryId).singleOrError())
+                    .flatMap(
+                        deletedEntry ->
+                            notifyBoardElement(board.getGameId(), "DELETE", userId, deletedEntry)));
+  }
+
+  protected Single<BoardElement> addAndNotifyBoardElement(
+      SqlConnection conn, UUID gameId, UUID userId, BoardElement entry) {
+
+    return boardElementRepository
+        .add(conn, entry)
+        .singleOrError()
+        .flatMap(element -> notifyBoardElement(gameId, "ADD", userId, element));
+  }
+
+  protected Single<BoardElement> notifyBoardElement(
+      UUID gameId, String action, UUID userId, BoardElement element) {
+    eventBusService.publish(gameId, "boards", action, userId, JsonObject.mapFrom(element));
+    return Single.just(element);
   }
 
   protected Single<Boolean> checkGrantBoardWrite(SqlConnection conn, UUID boardId, UUID userId) {
@@ -236,9 +299,9 @@ public class BoardService {
     }
   }
 
-  protected Function<Board, Board> notifyBoard(String action) {
+  protected Function<Board, Board> notifyBoard(String action, UUID userId) {
     return board -> {
-      eventBusService.publish(board.getGameId(), "boards", action, board);
+      eventBusService.publish(board.getGameId(), "boards", action, userId, board);
       return board;
     };
   }

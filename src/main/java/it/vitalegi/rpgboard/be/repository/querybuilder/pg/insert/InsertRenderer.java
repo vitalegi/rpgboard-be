@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface InsertRenderer {
 
-  public String renderKeys(List<TableInstance> instances);
+  String renderKeys(List<TableInstance> instances);
 
-  public String renderValues(List<TableInstance> instances);
+  String renderValues(List<TableInstance> instances);
 }

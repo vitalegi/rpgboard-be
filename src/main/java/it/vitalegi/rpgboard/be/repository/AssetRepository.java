@@ -21,9 +21,8 @@ import java.util.UUID;
 @Singleton
 public class AssetRepository extends AbstractSinglePkCrudRepository<Asset, UUID> {
 
-  Logger log = LoggerFactory.getLogger(this.getClass());
-
   protected static final SelectedValues NO_CONTENT = new SelectedValues().except(Asset.CONTENT);
+  Logger log = LoggerFactory.getLogger(this.getClass());
 
   public AssetRepository() {
     super(Mappers.ASSET, Asset::map, Asset::mapPK, Asset.BUILDER);
@@ -35,11 +34,11 @@ public class AssetRepository extends AbstractSinglePkCrudRepository<Asset, UUID>
     return executeQuery(
             connection,
             SelectFactory.init(table)
-                    .values(NO_CONTENT)
-                    .where(WhereClause.and(new EqualsPlaceholder(FieldsPicker.exact(Asset.GAME_ID))))
-                    .build(),
+                .values(NO_CONTENT)
+                .where(WhereClause.and(new EqualsPlaceholder(FieldsPicker.exact(Asset.GAME_ID))))
+                .build(),
             in)
-            .toList();
+        .toList();
   }
 
   public Single<Asset> getByIdNoContent(SqlConnection connection, UUID assetId) {
@@ -48,10 +47,10 @@ public class AssetRepository extends AbstractSinglePkCrudRepository<Asset, UUID>
     return executeQuery(
             connection,
             SelectFactory.init(table)
-                    .values(NO_CONTENT)
-                    .where(WhereClause.and(new EqualsPlaceholder(FieldsPicker.exact(Asset.ASSET_ID))))
-                    .build(),
-            in).singleOrError();
+                .values(NO_CONTENT)
+                .where(WhereClause.and(new EqualsPlaceholder(FieldsPicker.exact(Asset.ASSET_ID))))
+                .build(),
+            in)
+        .singleOrError();
   }
-
 }
