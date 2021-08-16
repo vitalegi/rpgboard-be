@@ -52,7 +52,7 @@ public class SetClause implements Renderer {
 
   public SetClause except(List<String> fields) {
     renderers.add(new SetTableColumnValue(FieldsPicker.except(fields)));
-    return except(null, fields);
+    return this;
   }
 
   @Override

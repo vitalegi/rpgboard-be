@@ -8,6 +8,7 @@ import it.vitalegi.rpgboard.be.data.Board;
 import it.vitalegi.rpgboard.be.data.BoardElement;
 import it.vitalegi.rpgboard.be.repository.BoardElementRepository;
 import it.vitalegi.rpgboard.be.repository.BoardRepository;
+import it.vitalegi.rpgboard.be.util.VertxUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,6 +146,47 @@ public class BoardService {
     return getBoard(conn, boardId, userId)
         .flatMap(board -> gameService.checkGrantGameRead(conn, board.getGameId(), userId))
         .flatMap(hasGrant -> boardElementRepository.add(conn, entry).singleOrError());
+  }
+
+  public Single<BoardElement> updateBoardElement(
+      SqlConnection conn,
+      UUID entryId,
+      UUID parentId,
+      Long entryPosition,
+      JsonObject config,
+      String updatePolicy,
+      String visibilityPolicy,
+      UUID userId) {
+    log.info("Update boardElement {}", entryId);
+
+    notNull(entryId, "entryId null");
+    notNull(config, "config null");
+    notNull(updatePolicy, "updatePolicy null");
+    notNull(visibilityPolicy, "visibilityPolicy null");
+    notNull(userId, "userId null");
+    return boardElementRepository
+        .getById(conn, entryId)
+        .map(VertxUtil.debug("Entry retrieved"))
+       .flatMap(
+            entry ->
+                getBoard(conn, entry.getBoardId(), userId)
+                    .map(VertxUtil.debug("Board retrieved"))
+                    .flatMap(
+                        board -> gameService.checkGrantGameRead(conn, board.getGameId(), userId))
+                        .map(VertxUtil.debug("user has permissions"))
+                    .map(hasPermission -> entry))
+        .map(
+            entry -> {
+              log.info("Mapping inputs");
+              entry.setParentId(parentId);
+              entry.setEntryPosition(entryPosition);
+              entry.setConfig(config);
+              entry.setUpdatePolicy(updatePolicy);
+              entry.setVisibilityPolicy(visibilityPolicy);
+              entry.setLastUpdate(OffsetDateTime.now());
+              return entry;
+            })
+        .flatMap(entry -> boardElementRepository.update(conn, entry).singleOrError());
   }
 
   public Single<BoardElement> deleteBoardElement(SqlConnection conn, UUID entryId, UUID userId) {

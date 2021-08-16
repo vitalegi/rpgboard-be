@@ -70,6 +70,7 @@ public class GameVerticle extends AbstractVerticle {
       eventBus.consumer("game.board.getActive", this::getActiveBoard);
       eventBus.consumer("game.board.getAll", this::getAllBoards);
       eventBus.consumer("game.boardelement.add", this::addBoardElement);
+      eventBus.consumer("game.boardelement.update", this::updateBoardElement);
       eventBus.consumer("game.boardelement.getAll", this::getBoardElements);
       eventBus.consumer("game.boardelement.delete", this::deleteBoardElement);
       eventBus.consumer("game.asset.add", this::addAsset);
@@ -192,18 +193,43 @@ public class GameVerticle extends AbstractVerticle {
           String visibilityPolicy = body.getString("visibilityPolicy");
           Long entryPosition = body.getLong("entryPosition", 0L);
 
-          return Single.just(msg)
-              .flatMap(
-                  m ->
-                      boardService.addBoardElement(
-                          conn,
-                          boardId,
-                          parentId,
-                          entryPosition,
-                          config,
-                          updatePolicy,
-                          visibilityPolicy,
-                          getUserId(msg)))
+          return boardService
+              .addBoardElement(
+                  conn,
+                  boardId,
+                  parentId,
+                  entryPosition,
+                  config,
+                  updatePolicy,
+                  visibilityPolicy,
+                  getUserId(msg))
+              .toMaybe();
+        })
+        .subscribe(observer);
+  }
+
+  protected void updateBoardElement(Message<JsonObject> msg) {
+    JsonObserver observer = JsonObserver.init(msg, "updateBoardElement");
+    JsonObject body = msg.body();
+    tx(conn -> {
+          log.info("Received {}", body);
+          UUID entryId = UuidUtil.getUUID(body.getString("entryId"));
+          UUID parentId = UuidUtil.getUUID(body.getString("parentId"));
+          JsonObject config = body.getJsonObject("config");
+          String updatePolicy = body.getString("updatePolicy");
+          String visibilityPolicy = body.getString("visibilityPolicy");
+          Long entryPosition = body.getLong("entryPosition", 0L);
+
+          return boardService
+              .updateBoardElement(
+                  conn,
+                  entryId,
+                  parentId,
+                  entryPosition,
+                  config,
+                  updatePolicy,
+                  visibilityPolicy,
+                  getUserId(msg))
               .toMaybe();
         })
         .subscribe(observer);
