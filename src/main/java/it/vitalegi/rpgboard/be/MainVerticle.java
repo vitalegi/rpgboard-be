@@ -239,7 +239,7 @@ public class MainVerticle extends AbstractVerticle {
         for (Map.Entry<String, String> entry : ctx.pathParams().entrySet()) {
           payload.put(entry.getKey(), entry.getValue());
         }
-        log.info("Send to {}: {}", address, payload);
+        log.debug("Send to {}: {}", address, payload);
         vertx
             .eventBus()
             .request(
@@ -260,6 +260,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private <T> void handleResponse(RoutingContext context, AsyncResult<Message<T>> reply) {
+    logRequestOutcome(context, reply);
     if (reply.succeeded()) {
       HttpServerResponse response = context.response();
       response.putHeader("content-type", "application/json; charset=utf-8");
@@ -271,6 +272,7 @@ public class MainVerticle extends AbstractVerticle {
 
   private void handleAssetContentResponse(
       RoutingContext context, AsyncResult<Message<Object>> reply) {
+    logRequestOutcome(context, reply);
     if (reply.succeeded()) {
       HttpServerResponse response = context.response();
       JsonObject body = (JsonObject) reply.result().body();
@@ -282,6 +284,14 @@ public class MainVerticle extends AbstractVerticle {
     } else {
       handleFailureResponse(context, reply.cause());
     }
+  }
+
+  private <T> void logRequestOutcome(RoutingContext context, AsyncResult<Message<T>> reply) {
+    log.info(
+        "Request done method={}, uri={}, succeeded={}",
+        context.request().method(),
+        context.request().uri(),
+        reply.succeeded());
   }
 
   private void handleFailureResponse(RoutingContext ctx, Throwable e) {

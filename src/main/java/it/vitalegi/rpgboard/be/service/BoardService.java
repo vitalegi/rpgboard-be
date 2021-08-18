@@ -193,6 +193,49 @@ public class BoardService {
                                             visibilityPolicy))));
   }
 
+  public Single<BoardElement> shareUpdateBoardElement(
+      SqlConnection conn,
+      UUID entryId,
+      UUID parentId,
+      Long entryPosition,
+      JsonObject config,
+      String updatePolicy,
+      String visibilityPolicy,
+      UUID userId) {
+    log.debug("Update boardElement {}", entryId);
+
+    notNull(entryId, "entryId null");
+    notNull(config, "config null");
+    notNull(updatePolicy, "updatePolicy null");
+    notNull(visibilityPolicy, "visibilityPolicy null");
+    notNull(userId, "userId null");
+
+    return boardElementRepository
+        .getById(conn, entryId)
+        .map(VertxUtil.debug("Entry retrieved"))
+        .flatMap(
+            entry ->
+                getBoard(conn, entry.getBoardId(), userId)
+                    .flatMap(
+                        board ->
+                            gameService
+                                .checkGrantGameRead(conn, board.getGameId(), userId)
+                                .map(VertxUtil.debug("user has permissions"))
+                                .map(
+                                    grant ->
+                                        mapUpdate(
+                                            entry,
+                                            parentId,
+                                            entryPosition,
+                                            config,
+                                            updatePolicy,
+                                            visibilityPolicy))
+                                .flatMap(
+                                    newEntry ->
+                                        notifyBoardElement(
+                                            board.getGameId(), "UPDATE", userId, newEntry))));
+  }
+
   protected Single<BoardElement> updateAndNotifyBoardElement(
       SqlConnection conn,
       Board board,

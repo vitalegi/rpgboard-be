@@ -212,7 +212,12 @@ public class GameVerticle extends AbstractVerticle {
     JsonObserver observer = JsonObserver.init(msg, "updateBoardElement");
     JsonObject body = msg.body();
     tx(conn -> {
-          log.info("Received {}", body);
+          boolean persist = body.getBoolean("persist", true);
+          if (persist) {
+            log.info("Received {}", body);
+          } else {
+            log.debug("Received {}", body);
+          }
           UUID entryId = UuidUtil.getUUID(body.getString("entryId"));
           UUID parentId = UuidUtil.getUUID(body.getString("parentId"));
           JsonObject config = body.getJsonObject("config");
@@ -220,17 +225,31 @@ public class GameVerticle extends AbstractVerticle {
           String visibilityPolicy = body.getString("visibilityPolicy");
           Long entryPosition = body.getLong("entryPosition", 0L);
 
-          return boardService
-              .updateBoardElement(
-                  conn,
-                  entryId,
-                  parentId,
-                  entryPosition,
-                  config,
-                  updatePolicy,
-                  visibilityPolicy,
-                  getUserId(msg))
-              .toMaybe();
+          if (persist) {
+            return boardService
+                .updateBoardElement(
+                    conn,
+                    entryId,
+                    parentId,
+                    entryPosition,
+                    config,
+                    updatePolicy,
+                    visibilityPolicy,
+                    getUserId(msg))
+                .toMaybe();
+          } else {
+            return boardService
+                .shareUpdateBoardElement(
+                    conn,
+                    entryId,
+                    parentId,
+                    entryPosition,
+                    config,
+                    updatePolicy,
+                    visibilityPolicy,
+                    getUserId(msg))
+                .toMaybe();
+          }
         })
         .subscribe(observer);
   }
